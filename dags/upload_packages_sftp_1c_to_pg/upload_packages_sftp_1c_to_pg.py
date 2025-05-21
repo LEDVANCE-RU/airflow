@@ -8,7 +8,7 @@ from datetime import datetime, UTC
 
 from airflow.utils.trigger_rule import TriggerRule
 
-from constants import AIRFLOW_TMP_DIRPATH, TZ_MSK
+from dags.constants import AIRFLOW_TMP_DIRPATH, TZ_MSK
 
 DEFAULT_ARGS = {
     "retries": 1,
@@ -36,14 +36,14 @@ with DAG(
 
     @task
     def transform_task(source_fp: str):
-        from upload_packages_sftp_1c_to_pg.transform import transform
+        from dags.upload_packages_sftp_1c_to_pg.libs.transform import transform
         transformed_fp = f"{source_fp}_t.csv"
         transform(source_fp, transformed_fp)
         return transformed_fp
 
     @task
     def upload_task(transformed_fp: str):
-        from upload_packages_sftp_1c_to_pg.upload import PgPackagesHook
+        from dags.upload_packages_sftp_1c_to_pg.libs.upload import PgPackagesHook
 
         pg = PgPackagesHook('pg_prod', transformed_fp)
         pg.create_table()

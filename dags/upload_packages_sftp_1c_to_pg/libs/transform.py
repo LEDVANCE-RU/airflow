@@ -1,9 +1,8 @@
 import csv
-import logging
 
 import pandas
 
-from upload_packages_sftp_1c_to_pg.mapping import PackageFieldsMap
+from dags.upload_packages_sftp_1c_to_pg.libs.mapping import PackageFieldsMap
 
 
 def transform(in_fp: str, out_fp: str):

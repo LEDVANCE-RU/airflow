@@ -1,7 +1,7 @@
 import logging
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-from upload_packages_sftp_1c_to_pg.mapping import PackageFieldsMap
+from dags.upload_packages_sftp_1c_to_pg.libs.mapping import PackageFieldsMap
 
 
 class PgPackagesHook(PostgresHook):
