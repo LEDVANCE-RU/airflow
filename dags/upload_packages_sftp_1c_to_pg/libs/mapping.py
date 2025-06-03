@@ -10,6 +10,7 @@ class Field:
 @dataclass(frozen=True)
 class PackageFieldsMap:
     _ALLOWED_LEVELS = [
+        'PCE',
         'EAN10',
         'EAN20',
         'EAN40',

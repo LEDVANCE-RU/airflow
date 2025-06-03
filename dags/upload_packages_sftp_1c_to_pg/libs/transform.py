@@ -1,4 +1,5 @@
 import csv
+import logging
 
 import pandas
 
@@ -17,8 +18,11 @@ def transform(in_fp: str, out_fp: str):
               inplace=True)
 
     df = df[df[fmap.level].isin(fmap.allowed_levels())]
-    df.drop_duplicates([fmap.code, fmap.level],
-                       inplace=True)
+
+    unique_key = [fmap.ic, fmap.level]
+    logging.info(df[df.duplicated(unique_key, keep=False)])
+    df.drop_duplicates(unique_key, inplace=True)
+
     df[fmap.qty] = df[fmap.enum] / df[fmap.denom]
     df = (
         df.pivot(
@@ -31,13 +35,16 @@ def transform(in_fp: str, out_fp: str):
         .reset_index()
     )
 
+    df.columns = ['.'.join([c for c in col if c]) for col in df.columns.values]
+
+    # forcibly add columns from mapping in case of the levels does not exist in source dataframe
+    df = df.reindex(columns=list(dest_map.keys()))
     d = {
         **{(str(c[0]), c[1]): 'float64' for c in df.columns if c[0] == fmap.enum},
         **{(str(c[0]), c[1]): 'string' for c in df.columns if c[0] == fmap.ean}
     }
     df = df.astype(d)
 
-    df.columns = ['.'.join([c for c in col if c]) for col in df.columns.values]
     (
         df
         .rename(columns={k: v.name for k, v in dest_map.items()})
