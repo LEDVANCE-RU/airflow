@@ -20,8 +20,16 @@ def transform(in_fp: str, out_fp: str):
     df = df[df[fmap.level].isin(fmap.allowed_levels())]
 
     unique_key = [fmap.ic, fmap.level]
-    logging.info(df[df.duplicated(unique_key, keep=False)])
-    df.drop_duplicates(unique_key, inplace=True)
+    df_duplicates = df[df.duplicated(unique_key, keep=False)]
+    if not df_duplicates.empty:
+        logging.warning(
+            'Duplicates found:\n%s\n',
+            df[df.duplicated(unique_key, keep=False)]
+            .sort_values(unique_key)
+            .fillna('')
+            .to_markdown(index=False, tablefmt="github")
+        )
+        df.drop_duplicates(unique_key, inplace=True)
 
     df[fmap.qty] = df[fmap.enum] / df[fmap.denom]
     df = (
@@ -37,7 +45,7 @@ def transform(in_fp: str, out_fp: str):
 
     df.columns = ['.'.join([c for c in col if c]) for col in df.columns.values]
 
-    # forcibly add columns from mapping in case of the levels does not exist in source dataframe
+    # forcibly add columns from mapping for case when levels are missing in source dataframe
     df = df.reindex(columns=list(dest_map.keys()))
     d = {
         **{(str(c[0]), c[1]): 'float64' for c in df.columns if c[0] == fmap.enum},
