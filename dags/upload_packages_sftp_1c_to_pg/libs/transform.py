@@ -23,8 +23,8 @@ def transform(in_fp: str, out_fp: str):
     df_duplicates = df[df.duplicated(unique_key, keep=False)]
     if not df_duplicates.empty:
         logging.warning(
-            'Duplicates found:\n%s\n',
-            df[df.duplicated(unique_key, keep=False)]
+            'Обнаружены дубли уровней упаковок по IC:\n%s\n',
+            df_duplicates
             .sort_values(unique_key)
             .fillna('')
             .to_markdown(index=False, tablefmt="github")
@@ -52,16 +52,25 @@ def transform(in_fp: str, out_fp: str):
         **{(str(c[0]), c[1]): 'string' for c in df.columns if c[0] == fmap.ean}
     }
     df = df.astype(d)
+    df.rename(columns={k: v.name for k, v in dest_map.items()}, inplace=True)
 
-    (
-        df
-        .rename(columns={k: v.name for k, v in dest_map.items()})
-        .to_csv(out_fp,
-                index=False,
-                encoding='utf-8',
-                sep=',',
-                quotechar='"',
-                quoting=csv.QUOTE_MINIMAL,
-                columns=[c.name for c in dest_map.values()])
-    )
+    df_wrong_pce_qty = df[
+       (df['pce_qty'] != 1)
+       & (df[[col for col in df.columns.values if col.endswith('_qty')]].min(axis='columns') != 1)
+    ]
+    if not df_wrong_pce_qty.empty:
+        logging.warning(
+            'Отсутствует штучная упаковка:\n%s\n',
+            df_wrong_pce_qty
+            .fillna('')
+            .to_markdown(index=False, tablefmt="github")
+        )
+
+    df.to_csv(out_fp,
+              index=False,
+              encoding='utf-8',
+              sep=',',
+              quotechar='"',
+              quoting=csv.QUOTE_MINIMAL,
+              columns=[c.name for c in dest_map.values()])
     return True
