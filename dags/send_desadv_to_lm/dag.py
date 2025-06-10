@@ -5,7 +5,7 @@ import shutil
 
 from airflow import DAG
 from airflow.providers.samba.hooks.samba import SambaHook
-from airflow.sdk import task, Variable
+from airflow.sdk import task, Variable, Connection
 from datetime import datetime
 
 from constants import TZ_MSK
@@ -65,11 +65,12 @@ with DAG(
 
     @task
     def send_task(fp_map: str):
+        esphere_conn = Connection.get('wsdl_edi_esphere')
         sender = DesadvSender(
             order_type=Variable.get('lm_desadv_sender_order_type'),
-            wsdl_path=Variable.get('esphere_wsdl_path'),
-            wsdl_username=Variable.get('esphere_username'),
-            wsdl_password=Variable.get('esphere_password'),
+            wsdl_path=esphere_conn.host,
+            wsdl_username=esphere_conn.login,
+            wsdl_password=esphere_conn.password,
             partner_gln=Variable.get('lm_gln'),
             test_mode=Variable.get('lm_desadv_sender_test_mode').strip().lower() == 'true'
         )
