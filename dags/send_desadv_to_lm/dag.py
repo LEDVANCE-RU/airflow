@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-import time
+import shutil
 
 from airflow import DAG
 from airflow.providers.samba.hooks.samba import SambaHook
@@ -45,43 +45,26 @@ with DAG(
             local_fp = os.path.join(local_dp, f.name)
             remote_fp = os.path.join(remote_dp, f.name)
             logging.info("Copying %s to %s...", remote_fp, local_fp)
-            with smb_hook.open_file(remote_fp, 'rb') as src_f:
-                with open(local_fp, 'wb') as dest_f:
-                    dest_f.writelines(src_f.readlines())
-                    dest_f.flush()
+            with smb_hook.open_file(remote_fp, 'rb') as src_f, open(local_fp, 'wb') as dest_f:
+                shutil.copyfileobj(src_f, dest_f)
             file_paths_map[remote_fp] = local_fp
-
-        out_fp = os.path.join(local_dp, f"{time.time()}_file_paths_map.json")
-        with open(out_fp, 'w') as f:
-            json.dump(file_paths_map, f)
-
-        return out_fp
+        return json.dumps(file_paths_map)
 
 
     @task()
-    def transform_task(map_fp: str) -> str:
-        transformed_file_paths_map = dict()
-        with open(map_fp, 'r') as f:
-            file_paths_map = json.load(f)
-        for remote_fp, local_fp in file_paths_map.items():
+    def transform_task(fp_map: str) -> str:
+        t_fp_map = dict()
+        for remote_fp, local_fp in json.loads(fp_map).items():
             rr = ReportReader(local_fp, Variable.get('lm_desadv_sender_order_type'))
             df = rr.parse()
             transformed_fp = f"{local_fp}{TRANSFORMED_FILENAME_SUFFIX}"
             df.to_parquet(transformed_fp)
-            transformed_file_paths_map[remote_fp] = transformed_fp
+            t_fp_map[remote_fp] = transformed_fp
             os.remove(local_fp)
-        os.remove(map_fp)
-
-        out_fp = os.path.join(get_local_tmp_dir_path(), f"{time.time()}_file_paths_map.json")
-        with open(out_fp, 'w') as f:
-            json.dump(transformed_file_paths_map, f)
-
-        return out_fp
+        return json.dumps(t_fp_map)
 
     @task
-    def send_task(map_fp: str):
-        with open(map_fp, 'r') as f:
-            transformed_file_paths_map = json.load(f)
+    def send_task(fp_map: str):
         sender = DesadvSender(
             order_type=Variable.get('lm_desadv_sender_order_type'),
             wsdl_path=Variable.get('esphere_wsdl_path'),
@@ -91,7 +74,7 @@ with DAG(
             test_mode=Variable.get('lm_desadv_sender_test_mode').strip().lower() == 'true'
         )
 
-        for remote_fp, transformed_local_fp in transformed_file_paths_map.items():
+        for remote_fp, transformed_local_fp in json.loads(fp_map).items():
             save_outputs = Variable.get('lm_desadv_sender_save_outputs').strip().lower() == 'true'
             outputs_dir_path = os.path.dirname(transformed_local_fp) if save_outputs else None
             sender.send(transformed_local_fp, outputs_dir_path=outputs_dir_path)
@@ -108,8 +91,8 @@ with DAG(
             smb_hook.rename(remote_fp, remote_processed_fp)
             logging.info("Файл '%s' перемещен в '%s'", remote_fp, remote_processed_fp)
 
-        os.remove(map_fp)
+        os.remove(fp_map)
 
-    src_map_fp = download_task()
-    transformed_map_fp = transform_task(src_map_fp)
-    send_task(transformed_map_fp)
+    src_fp_map = download_task()
+    t_fp_map = transform_task(src_fp_map)
+    send_task(t_fp_map)
