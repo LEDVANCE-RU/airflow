@@ -30,3 +30,7 @@ class NonOccupiedPackageError(ValidationError):
 
 class OrphanedItemsError(ValidationError):
     ...
+
+
+class MandatoryFieldsMissingError(ValidationError):
+    ...

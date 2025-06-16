@@ -12,7 +12,8 @@ from send_desadv_to_lm.libs.constants import (
 )
 from send_desadv_to_lm.libs.exceptions import (
     ValuesNumDiscrepancyError, NoExpenditureOrdersFoundError, PackageItemsInconsistencyError,
-    UnknownPackageTypeError, NonUniquePackageError, NonOccupiedPackageError, OrphanedItemsError
+    UnknownPackageTypeError, NonUniquePackageError, NonOccupiedPackageError, OrphanedItemsError,
+    MandatoryFieldsMissingError
 )
 from send_desadv_to_lm.libs.field_map import (
     BaseFields,
@@ -421,7 +422,7 @@ class ReportReader:
         df_v = df[s_v][validation_fields].rename(columns=validation_fields)
         msg = (f"Обнаружены пустые значения на листе \"{sheet_name}\".\n"
                f"{df_v.fillna('').to_markdown(index=False, tablefmt="github")}")
-        raise NonUniquePackageError(msg)
+        raise MandatoryFieldsMissingError(msg)
 
     def _validate_orphaned_items(self, df_base_packages: pandas.DataFrame,
                                  df_items: pandas.DataFrame):
