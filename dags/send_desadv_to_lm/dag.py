@@ -92,8 +92,6 @@ with DAG(
             smb_hook.rename(remote_fp, remote_processed_fp)
             logging.info("Файл '%s' перемещен в '%s'", remote_fp, remote_processed_fp)
 
-        os.remove(fp_map)
-
     src_fp_map = download_task()
     t_fp_map = transform_task(src_fp_map)
     send_task(t_fp_map)
