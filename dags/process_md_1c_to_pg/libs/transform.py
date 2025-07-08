@@ -5,7 +5,7 @@ import uuid
 import pandas as pd
 import logging
 
-from .mapping import MdFieldsMap
+from process_md_1c_to_pg.libs.mapping import MdFieldsMap
 
 def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_key: str) -> str:
     df = pd.read_excel(in_fp, dtype=str)
@@ -22,7 +22,8 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
               encoding='utf-8',
               sep=',',
               quotechar='"',
-              quoting=csv.QUOTE_MINIMAL)
+              quoting=csv.QUOTE_MINIMAL,
+              columns=dest_columns)
     
     logging.info(f"Transformed {in_fp} to {export_fp}")
     return export_fp

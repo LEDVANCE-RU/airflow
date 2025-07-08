@@ -49,8 +49,8 @@ class MdFieldsMap:
             'aug_key': Field('aug_key', 'character varying(200)'),
             'ag_key': Field('ag_key', 'character varying(200)'),
             'bs_key': Field('bs_key', 'character varying(200)'),
-            'deletion_mark': Field('deletion_mark', 'character varying(200)'),
-            'priority': Field('priority', 'character varying(200)'),
+            'deletion_mark': Field('deletion_mark', 'bool'),
+            'priority': Field('priority', 'int'),
         }
 
     @classmethod

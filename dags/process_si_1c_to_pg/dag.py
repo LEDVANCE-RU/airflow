@@ -8,32 +8,31 @@ from airflow.sdk import task, teardown, Variable
 from datetime import datetime
 
 from constants import TZ_MSK
-from process_md_1c_to_pg.libs.transform import transform_md_data
-from process_md_1c_to_pg.libs.upload import PgMdHook
-# from .libs.constants import ResultKeys 
+from process_si_1c_to_pg.libs.transform import transform_si_data
+from process_si_1c_to_pg.libs.upload import PgSiHook
+
 
 with DAG(
-    dag_id="process_md_1c_to_pg",
+    dag_id="process_si_1c_to_pg",
     start_date=datetime(2025, 5, 1, tzinfo=TZ_MSK),
-    schedule='0 20 * * *',
-    catchup=False
+    schedule='30 8 * * 1-5',
+    catchup=False,
+    tags=['1c', 'si', 'postgresql'],
 ) as dag:
-    
-    def get_local_tmp_dir_path():
-        return os.path.join(Variable.get('tmp_dir_path'), 'md_1c')
-
     @task
     def download_task() -> str:
         from airflow.providers.sftp.hooks.sftp import SFTPHook
 
-        local_dp = get_local_tmp_dir_path()
+        local_dp = os.path.join(Variable.get('tmp_dir_path'), 'si_1c')
         os.makedirs(local_dp, exist_ok=True)
         
-        sftp_hook = SFTPHook("sftp_1c") 
+        sftp_hook = SFTPHook(Variable.get("si_sftp_conn_id"))
         
         files_to_download = {
-            "products": Variable.get("md_1c_products_sftp_path"),
-            "price_list": Variable.get("md_1c_pricelist_sftp_path")
+            "stock_1c": Variable.get("si_stock_1c_sftp_path"),
+            "open_po_ic": Variable.get("si_open_po_ic_sftp_path"),
+            "transit": Variable.get("si_transit_sftp_path"),
+            "stock_for_customer": Variable.get("si_stock_for_customer_sftp_path")
         }
         
         local_filepaths = {}
@@ -42,7 +41,7 @@ with DAG(
             if not remote_fp:
                 logging.info(f"SFTP path for {key} is not configured. Skipping.")
                 continue
-            local_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_{os.path.basename(remote_fp)}")
+            local_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_{key}.txt")
             try:
                 sftp_hook.retrieve_file(remote_fp, local_fp)
                 local_filepaths[key] = local_fp
@@ -58,17 +57,14 @@ with DAG(
 
     @task
     def transform_task(downloaded_files_json: str) -> str:
-        local_dp = get_local_tmp_dir_path()
-        transformed_files = transform_md_data(downloaded_files_json, local_dp)
+        local_dp = os.path.join(Variable.get('tmp_dir_path'), 'si_1c')
+        transformed_files = transform_si_data(downloaded_files_json, local_dp)
         logging.info("Transformation complete.")
         return transformed_files
 
     @task
     def upload_task(transformed_data_json: str):
-        """
-        Uploads transformed data to PostgreSQL using logic from libs/upload.py
-        """
-        pg_hook = PgMdHook(pg_conn_id=Variable.get("md_1c_pg_conn_id"))
+        pg_hook = PgSiHook(pg_conn_id=Variable.get("si_pg_conn_id"))
         pg_hook.upload_data(transformed_data_json)
         logging.info("Upload complete.")
 
@@ -89,4 +85,4 @@ with DAG(
     transformed_files = transform_task(downloaded_files)
     upload_task(transformed_files)
     
-    (downloaded_files, transformed_files) >> cleanup_task(downloaded_files, transformed_files)
+    (downloaded_files, transformed_files) >> cleanup_task(downloaded_files, transformed_files) 
