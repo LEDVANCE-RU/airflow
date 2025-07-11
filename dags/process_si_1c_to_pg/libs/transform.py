@@ -63,4 +63,4 @@ def transform_si_data(downloaded_files_json: str, out_dp: str):
             if transformed_fp:
                 transformed_filepaths[key] = transformed_fp
         
-    return json.dumps(transformed_filepaths) 
+    return json.dumps(transformed_filepaths)

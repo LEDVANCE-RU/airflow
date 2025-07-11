@@ -1,7 +1,7 @@
 import logging
 import json
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from .mapping import MdFieldsMap
+from process_md_1c_to_pg.libs.mapping import MdFieldsMap
 
 class PgMdHook(PostgresHook):
     def __init__(self, pg_conn_id: str, *args, **kwargs):
@@ -13,15 +13,15 @@ class PgMdHook(PostgresHook):
         self._import_data(table_name, dest_map, import_filepath)
 
     def _create_table(self, table_name: str, dest_map: dict):
-        logging.info(f'Creating table {table_name} if not exists...')
+        logging.info('Creating table %s if not exists...', table_name)
         sql_cols_str = ',\n'.join([f"{v.name} {v.type}" for v in dest_map.values()])
         self.run(f"CREATE TABLE IF NOT EXISTS {table_name} ({sql_cols_str});")
-        logging.info(f'Table {table_name} ensured to exist.')
+        logging.info('Table %s ensured to exist.', table_name)
 
     def _clear_table(self, table_name: str):
-        logging.info(f'Cleaning up table {table_name} ...')
+        logging.info('Cleaning up table %s ...', table_name)
         self.run(f"TRUNCATE TABLE {table_name};")
-        logging.info(f'Table {table_name} has been cleaned up.')
+        logging.info('Table %s has been cleaned up.', table_name)
 
     def _import_data(self, table_name: str, dest_map: dict, import_filepath: str):
         columns = [v.name for v in dest_map.values()]
@@ -36,7 +36,7 @@ class PgMdHook(PostgresHook):
                 HEADER
             );
         """
-        logging.info(f'Importing data from file {import_filepath} to table {table_name} ...')
+        logging.info('Importing data from file %s to table %s ...', import_filepath, table_name)
         self.copy_expert(copy_sql, import_filepath)
         logging.info('Data has been imported successfully.')
 

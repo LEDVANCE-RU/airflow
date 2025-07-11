@@ -62,4 +62,4 @@ class PgSiHook(PostgresHook):
                     table_name=params["table_name"],
                     dest_map=params["dest_map"](),
                     import_filepath=fp
-                ) 
+                )

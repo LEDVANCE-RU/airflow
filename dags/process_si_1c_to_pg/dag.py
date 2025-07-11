@@ -11,7 +11,6 @@ from constants import TZ_MSK
 from process_si_1c_to_pg.libs.transform import transform_si_data
 from process_si_1c_to_pg.libs.upload import PgSiHook
 
-
 with DAG(
     dag_id="process_si_1c_to_pg",
     start_date=datetime(2025, 5, 1, tzinfo=TZ_MSK),
@@ -39,15 +38,15 @@ with DAG(
 
         for key, remote_fp in files_to_download.items():
             if not remote_fp:
-                logging.info(f"SFTP path for {key} is not configured. Skipping.")
+                logging.info("SFTP path for %s is not configured. Skipping.", key)
                 continue
             local_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_{key}.txt")
             try:
                 sftp_hook.retrieve_file(remote_fp, local_fp)
                 local_filepaths[key] = local_fp
-                logging.info(f"Downloaded {remote_fp} to {local_fp}")
+                logging.info("Downloaded %s to %s", remote_fp, local_fp)
             except FileNotFoundError:
-                logging.warning(f"File not found on SFTP: {remote_fp}. Skipping.")
+                logging.warning("File not found on SFTP: %s. Skipping.", remote_fp)
         
         if not local_filepaths:
             from airflow.exceptions import AirflowSkipException
@@ -79,10 +78,10 @@ with DAG(
         for fp in files_to_delete:
             if fp and os.path.exists(fp):
                 os.remove(fp)
-                logging.info(f"File {fp} removed.")
+                logging.info("File %s removed.", fp)
 
     downloaded_files = download_task()
     transformed_files = transform_task(downloaded_files)
-    upload_task(transformed_files)
+    uploaded = upload_task(transformed_files)
     
-    (downloaded_files, transformed_files) >> cleanup_task(downloaded_files, transformed_files) 
+    uploaded >> cleanup_task(downloaded_files, transformed_files) 
