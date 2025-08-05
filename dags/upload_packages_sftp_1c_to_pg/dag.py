@@ -59,6 +59,7 @@ with DAG(
 
         issues_fp = {k: v for k, v in json.loads(fp_map).items() if k in ResultKeys.issue_keys() and v}
         if not issues_fp:
+            logging.info("No issues found.")
             return None
 
         webdav_hook = WebDAVHook('webdav_sharepoint_root')
@@ -75,7 +76,7 @@ with DAG(
     def notify_about_issues_task(issues_fp_map: str):
         from airflow.providers.smtp.hooks.smtp import SmtpHook
 
-        fp_map = json.loads(issues_fp_map)
+        fp_map = json.loads(issues_fp_map or '{}')
         if not fp_map:
             return
 
@@ -103,8 +104,8 @@ with DAG(
 
     local_fp = download_task()
     fp_map = transform_task(local_fp)
-    upload_task(fp_map)
+    uploaded = upload_task(fp_map)
     issues_fp_map = process_issues_task(fp_map)
     notify_about_issues_task(issues_fp_map)
 
-    (fp_map, issues_fp_map) >> cleanup_task(local_fp, fp_map)
+    (uploaded, issues_fp_map) >> cleanup_task(local_fp, fp_map)
