@@ -100,11 +100,24 @@ class ReportReader:
         df = pandas.read_excel(self.path, header=1, usecols=BaseFields.map().keys(),
                                dtype=BaseFields.src_types())
         df.rename(columns=BaseFields.map(), inplace=True)
+
+        # remove duplicates by exp. order/line (just in case)
+        df.drop_duplicates([BaseFields.EXPENDITURE_ORDER,
+                            BaseFields.EXPENDITURE_ORDER_LINE], inplace=True)
+        # aggregate item qty over customer's order line num as single line might be split into several exp. order lines
+        df[BaseFields.ISSUED_ITEM_QTY] = (
+            df.groupby([BaseFields.EXPENDITURE_ORDER,
+                        BaseFields.CUSTOMER_ORDER_LINE])
+            [BaseFields.ISSUED_ITEM_QTY]
+            .transform('sum')
+        )
+
         df.drop_duplicates([BaseFields.ORDER,
                             BaseFields.CUSTOMER_ORDER_LINE,
                             BaseFields.EXPENDITURE_ORDER,
                             BaseFields.ISSUE,
                             BaseFields.INVOICE], inplace=True)
+
         df[BaseFields.SHIP_TO_GLN] = SHIP_TO_GLN
         df[BaseFields.SELLER_GLN] = SELLER_GLN
         df[[BaseFields.DELIVERY_NOTE, BaseFields.DELIVERY_NOTE_DATE]] =(

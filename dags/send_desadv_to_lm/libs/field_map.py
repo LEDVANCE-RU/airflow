@@ -27,6 +27,7 @@ class BaseFields(StrEnum):
     INVOICE_SUM_WITHOUT_VAT = f"{_PREFIX}doc_sum_wo_vat"
     DELIVERY_NOTE = f"{_PREFIX}delivery_note"
     EXPENDITURE_ORDER = f"{_PREFIX}exp_order"
+    EXPENDITURE_ORDER_LINE = f"{_PREFIX}exp_order_line"
 
     DELIVERY_NOTE_DATE = f"{_PREFIX}delivery_note_date"
 
@@ -56,7 +57,8 @@ class BaseFields(StrEnum):
             "Сумма НДС (Документа)": cls.INVOICE_VAT,
             "Сумма (Документа)": cls.INVOICE_SUM_WITHOUT_VAT,
             "ТН": cls.DELIVERY_NOTE,
-            "Номер": cls.EXPENDITURE_ORDER
+            "Номер": cls.EXPENDITURE_ORDER,
+            "№ строки": cls.EXPENDITURE_ORDER_LINE
         })
 
     @classmethod
