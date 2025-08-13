@@ -51,7 +51,7 @@ with DAG(
         # Copy each file
         for filename in filenames:
             source_path = os.path.join(ftp_base_path, filename)
-            target_path = f"{target_folder}/{filename}"
+            target_path = os.path.join(target_folder, filename)
 
             try:
                 # Download from FTP/SFTP to memory via SSH
