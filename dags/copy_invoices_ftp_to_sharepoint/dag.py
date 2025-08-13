@@ -13,26 +13,9 @@ from plugins.hooks.webdav import WebDAVHook
 DAG_ID = "copy_invoices_ftp_to_sharepoint"
 SCHEDULE = '30 8 * * 1-5'  # 08:30 MSK Mon-Fri
 
-# Source FTP connection and base path
-FTP_CONN_ID = Variable.get('invoices_ftp_conn_id', default='sftp_1c')
-FTP_BASE_PATH = Variable.get('invoices_ftp_base_path', default='/path/to/invoices')
-
-# Destination SharePoint WebDAV connection and relative target folder
-WEBDAV_CONN_ID = Variable.get('invoices_webdav_conn_id', default='webdav_sharepoint_root')
-WEBDAV_TARGET_RELATIVE_PATH = Variable.get(
-    'invoices_webdav_target_rel_path',
-    default='MSK-files/TRADE/Invoices'
-)
-
-FILENAMES = [
-    'actual sum and cur (invoice).txt',
-    'Invoice (actual payment date).txt',
-    'Invoice (transit).txt',
-    'Invoice PO.txt',
-    'Plan (invoice).txt',
-    'UNK_Invoice_new_version_2.txt',
-    'Плановое погашение_16.08.2024.txt',
-]
+# Stable connection identifiers should be constants
+FTP_CONN_ID = 'sftp_1c'
+WEBDAV_CONN_ID = 'webdav_sharepoint_root'
 
 
 with DAG(
@@ -45,13 +28,20 @@ with DAG(
 
     @task
     def copy_files_task():
+        # Read Variables inside task (no defaults, fail fast if missing)
+        ftp_base_path = Variable.get('invoices_ftp_base_path')
+        webdav_target_rel_path = Variable.get('invoices_webdav_target_rel_path')
+        filenames = Variable.get('invoices_filenames', deserialize_json=True)
+        if not filenames:
+            raise ValueError("Airflow Variable 'invoices_filenames' is not set or empty")
+
         # Prepare hooks
         ssh_hook = SSHHook(ssh_conn_id=FTP_CONN_ID)
         webdav_hook = WebDAVHook(conn_id=WEBDAV_CONN_ID)
 
         # Ensure target folder exists (best-effort)
         client = webdav_hook.get_conn()
-        target_folder = WEBDAV_TARGET_RELATIVE_PATH.strip('/')
+        target_folder = webdav_target_rel_path.strip('/')
         try:
             if not client.check(remote_path=target_folder):
                 client.mkdir(remote_path=target_folder)
@@ -59,12 +49,12 @@ with DAG(
             logging.warning("Cannot ensure target folder exists at '%s': %s", target_folder, exc)
 
         # Copy each file
-        for filename in FILENAMES:
-            source_path = os.path.join(FTP_BASE_PATH, filename)
+        for filename in filenames:
+            source_path = os.path.join(ftp_base_path, filename)
             target_path = f"{target_folder}/{filename}"
 
             try:
-                # Download from FTP/SFTP to a temporary local path via SSH
+                # Download from FTP/SFTP to memory via SSH
                 with ssh_hook.get_conn() as ssh_client:
                     sftp = ssh_client.open_sftp()
                     try:
@@ -73,8 +63,8 @@ with DAG(
                     finally:
                         sftp.close()
 
-                # Upload to SharePoint via WebDAV
-                client.resource(target_path).write(file_bytes)
+                # Upload to SharePoint via WebDAV (write_to for bytes)
+                client.resource(target_path).write_to(file_bytes)
                 logging.info("Copied '%s' -> '%s'", source_path, target_path)
             except FileNotFoundError:
                 logging.warning("Source file not found on FTP: %s. Skipping.", source_path)
