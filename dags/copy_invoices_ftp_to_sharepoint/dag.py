@@ -7,7 +7,7 @@ from airflow.sdk import task, Variable
 from airflow.providers.ssh.hooks.ssh import SSHHook
 
 from constants import TZ_MSK
-from plugins.hooks.webdav import WebDAVHook
+from hooks.webdav import WebDAVHook
 
 
 DAG_ID = "copy_invoices_ftp_to_sharepoint"
