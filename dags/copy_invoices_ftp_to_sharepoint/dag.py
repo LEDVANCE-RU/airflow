@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 from airflow import DAG
+from airflow.exceptions import AirflowException
 from airflow.sdk import task, Variable
 from airflow.providers.ssh.hooks.ssh import SSHHook
 
@@ -48,7 +49,6 @@ with DAG(
         except Exception as exc:
             logging.warning("Cannot ensure target folder exists at '%s': %s", target_folder, exc)
 
-
         error_occured = False
         # Copy each file
         for filename in filenames:
@@ -73,9 +73,9 @@ with DAG(
                 logging.error("Source file not found on FTP: %s. Skipping.", source_path)
             except Exception as exc:
                 error_occured = True
-                logging.exception("Failed to copy '%s' to '%s': %s", source_path, target_path)
+                logging.error("Failed to copy '%s' to '%s': %s", source_path, target_path, exc)
 
         if error_occured:
-            raise Exception("Not all files were copied!")
+            raise AirflowException("Not all files were copied!")
 
     copy_files_task()
