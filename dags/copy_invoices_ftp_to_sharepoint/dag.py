@@ -48,6 +48,8 @@ with DAG(
         except Exception as exc:
             logging.warning("Cannot ensure target folder exists at '%s': %s", target_folder, exc)
 
+
+        error_occured = False
         # Copy each file
         for filename in filenames:
             source_path = os.path.join(ftp_base_path, filename)
@@ -64,13 +66,17 @@ with DAG(
                         sftp.close()
 
                 # Upload to SharePoint via WebDAV (write_to for bytes)
-                client.resource(target_path).write_to(file_bytes)
+                client.resource(target_path).read_from(file_bytes)
                 logging.info("Copied '%s' -> '%s'", source_path, target_path)
             except FileNotFoundError:
+                error_occured = True
                 logging.warning("Source file not found on FTP: %s. Skipping.", source_path)
             except Exception as exc:
+                error_occured = True
                 logging.error("Failed to copy '%s' to '%s': %s", source_path, target_path, exc)
 
+        if error_occured:
+            logging.exception("Last exception occurred during copying:")
+            raise exc
+
     copy_files_task()
-
-
