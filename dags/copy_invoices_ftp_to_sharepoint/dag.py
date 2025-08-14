@@ -70,13 +70,12 @@ with DAG(
                 logging.info("Copied '%s' -> '%s'", source_path, target_path)
             except FileNotFoundError:
                 error_occured = True
-                logging.warning("Source file not found on FTP: %s. Skipping.", source_path)
+                logging.error("Source file not found on FTP: %s. Skipping.", source_path)
             except Exception as exc:
                 error_occured = True
-                logging.error("Failed to copy '%s' to '%s': %s", source_path, target_path, exc)
+                logging.exception("Failed to copy '%s' to '%s': %s", source_path, target_path)
 
         if error_occured:
-            logging.exception("Last exception occurred during copying:")
-            raise exc
+            raise Exception("Not all files were copied!")
 
     copy_files_task()
