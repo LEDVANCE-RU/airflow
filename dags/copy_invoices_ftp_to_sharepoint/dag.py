@@ -12,7 +12,7 @@ from hooks.webdav import WebDAVHook
 
 
 DAG_ID = "copy_invoices_ftp_to_sharepoint"
-SCHEDULE = '30 8 * * 1-5'  # 08:30 MSK Mon-Fri
+SCHEDULE = '0 12,20 * * 1-5'  # 12:00 и 20:00 MSK Mon-Fri
 
 # Stable connection identifiers should be constants
 FTP_CONN_ID = 'sftp_1c'
