@@ -4,12 +4,15 @@ import os
 import uuid
 
 from airflow import DAG
+from airflow.exceptions import AirflowException
 from airflow.sdk import task, teardown, Variable
 from datetime import datetime
 
 from constants import TZ_MSK
 from process_si_1c_to_pg.libs.transform import transform_si_data
 from process_si_1c_to_pg.libs.upload import PgSiHook
+
+SI_DIR_NAME = 'si_1c'
 
 with DAG(
     dag_id="process_si_1c_to_pg",
@@ -22,7 +25,7 @@ with DAG(
     def download_task() -> str:
         from airflow.providers.sftp.hooks.sftp import SFTPHook
 
-        local_dp = os.path.join(Variable.get('tmp_dir_path'), 'si_1c')
+        local_dp = os.path.join(Variable.get('tmp_dir_path'), SI_DIR_NAME)
         os.makedirs(local_dp, exist_ok=True)
         
         sftp_hook = SFTPHook(Variable.get("si_sftp_conn_id"))
@@ -35,6 +38,7 @@ with DAG(
         }
         
         local_filepaths = {}
+        failed_keys = []
 
         for key, remote_fp in files_to_download.items():
             if not remote_fp:
@@ -46,17 +50,19 @@ with DAG(
                 local_filepaths[key] = local_fp
                 logging.info("Downloaded %s to %s", remote_fp, local_fp)
             except FileNotFoundError:
-                logging.warning("File not found on SFTP: %s. Skipping.", remote_fp)
+                failed_keys.append(key)
+                logging.error("Failed to download required file on SFTP: %s", remote_fp)
         
-        if not local_filepaths:
-            from airflow.exceptions import AirflowSkipException
-            raise AirflowSkipException("No files were downloaded. Skipping the rest of the DAG.")
+        configured_expected_keys = [k for k, path in files_to_download.items() if path]
+        if len(local_filepaths) < len(configured_expected_keys):
+            missing = sorted(set(configured_expected_keys) - set(local_filepaths.keys())) or failed_keys
+            raise AirflowException(f"Not all files were downloaded. Missing: {missing}")
 
         return json.dumps(local_filepaths)
 
     @task
     def transform_task(downloaded_files_json: str) -> str:
-        local_dp = os.path.join(Variable.get('tmp_dir_path'), 'si_1c')
+        local_dp = os.path.join(Variable.get('tmp_dir_path'), SI_DIR_NAME)
         transformed_files = transform_si_data(downloaded_files_json, local_dp)
         logging.info("Transformation complete.")
         return transformed_files
