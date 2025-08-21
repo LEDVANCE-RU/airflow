@@ -1,7 +1,9 @@
 import logging
+import json
 import os
 import pandas as pd
 from airflow import DAG
+from airflow.exceptions import AirflowException
 from airflow.sdk import task, teardown, Variable
 from datetime import datetime
 
@@ -22,14 +24,11 @@ with DAG(
 
     @task
     def send_report_task(report_df: pd.DataFrame):
-        recipients_str = Variable.get("stock_sender_emails", default_var="")
-        if not recipients_str:
-            logging.warning("Airflow Variable 'stock_sender_emails' is not set or empty. Skipping email.")
-            return
+        recipients = Variable.get("stock_sender_emails", default=None, deserialize_json=True)
+        if not recipients or not isinstance(recipients, dict) or not recipients.get("to"):
+            raise AirflowException("Airflow Variable 'stock_sender_emails' is not set or invalid.")
 
-        recipients = [email.strip() for email in recipients_str.split(',')]
         tmp_dir = Variable.get('tmp_dir_path')
-        
         send_report_by_email(report_df, recipients, tmp_dir)
 
     @teardown

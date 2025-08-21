@@ -15,7 +15,7 @@ def get_stock_report_df(pg_conn_id: str) -> pd.DataFrame:
     
     return report_df
 
-def send_report_by_email(report_df: pd.DataFrame, recipients: list[str], tmp_dir: str):
+def send_report_by_email(report_df: pd.DataFrame, recipients: dict, tmp_dir: str):
     if report_df.empty:
         logging.info("Report is empty, skipping email.")
         return
@@ -27,9 +27,11 @@ def send_report_by_email(report_df: pd.DataFrame, recipients: list[str], tmp_dir
     logging.info("Report saved to %s", filepath)
 
     send_email(
-        to=recipients,
+        to=recipients.get('to', []),
+        cc=recipients.get('cc', []),
+        bcc=recipients.get('bcc', []),
         subject='Stock Report',
         html_content='Please find the attached stock report.',
         files=[filepath],
     )
-    logging.info("Email sent to: %s", recipients)
+    logging.info("Email sent to: to=%s cc=%s bcc=%s", recipients.get('to'), recipients.get('cc'), recipients.get('bcc'))
