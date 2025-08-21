@@ -4,6 +4,7 @@ import os
 import uuid
 
 from airflow import DAG
+from airflow.exceptions import AirflowException
 from airflow.sdk import task, teardown, Variable
 from datetime import datetime
 
@@ -37,6 +38,7 @@ with DAG(
         }
         
         local_filepaths = {}
+        failed_keys = []
 
         for key, remote_fp in files_to_download.items():
             if not remote_fp:
@@ -48,11 +50,14 @@ with DAG(
                 local_filepaths[key] = local_fp
                 logging.info("Downloaded %s to %s", remote_fp, local_fp)
             except FileNotFoundError:
-                logging.warning("File not found on SFTP: %s. Skipping.", remote_fp)
+                failed_keys.append(key)
+                logging.error("Failed to download required file on SFTP: %s", remote_fp)
         
-        if not local_filepaths:
-            from airflow.exceptions import AirflowSkipException
-            raise AirflowSkipException("No files were downloaded. Skipping the rest of the DAG.")
+        # Fail the DAG if at least one expected file failed to download
+        configured_expected_keys = [k for k, path in files_to_download.items() if path]
+        if len(local_filepaths) < len(configured_expected_keys):
+            missing = sorted(set(configured_expected_keys) - set(local_filepaths.keys())) or failed_keys
+            raise AirflowException(f"Not all files were downloaded. Missing: {missing}")
 
         return json.dumps(local_filepaths)
 
