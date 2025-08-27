@@ -25,7 +25,7 @@ with DAG(
     @task
     def send_report_task(report_df: pd.DataFrame):
         recipients = Variable.get("stock_sender_emails", default=None, deserialize_json=True)
-        if not recipients or not isinstance(recipients, dict) or not recipients.get("to"):
+        if not recipients or not isinstance(recipients, dict):
             raise AirflowException("Airflow Variable 'stock_sender_emails' is not set or invalid.")
 
         tmp_dir = Variable.get('tmp_dir_path')
