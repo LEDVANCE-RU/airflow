@@ -28,7 +28,7 @@ with DAG(
         local_dp = os.path.join(Variable.get('tmp_dir_path'), SI_DIR_NAME)
         os.makedirs(local_dp, exist_ok=True)
         
-        sftp_hook = SFTPHook(Variable.get("si_sftp_conn_id"))
+        sftp_hook = SFTPHook("sftp_1c")
         
         files_to_download = {
             "stock_1c": Variable.get("si_stock_1c_sftp_path"),
@@ -67,7 +67,7 @@ with DAG(
 
     @task
     def upload_task(transformed_data_json: str):
-        pg_hook = PgSiHook(pg_conn_id=Variable.get("si_pg_conn_id"))
+        pg_hook = PgSiHook(pg_conn_id='pg_prod')
         pg_hook.upload_data(transformed_data_json)
         logging.info("Upload complete.")
 
