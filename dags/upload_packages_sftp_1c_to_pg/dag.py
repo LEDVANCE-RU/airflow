@@ -82,7 +82,7 @@ with DAG(
 
         links = [f'<li><a href="{v}">{ISSUES_NAMES_MAP.get(k, k)}</a></li>' for k, v in fp_map.items()]
         html_content = ISSUES_NOTIFICATION_HTML.format(issues=''.join(links))
-        addressees = json.loads(Variable.get('packages_issues_notification_addressees'))
+        addressees = Variable.get('packages_issues_notification_addressees', deserialize_json=True)
 
         smtp_hook = SmtpHook('smtp_sys_tech')
         smtp_hook.get_conn()
