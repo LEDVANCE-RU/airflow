@@ -30,11 +30,13 @@ with DAG(
         
         sftp_hook = SFTPHook("sftp_1c")
         
+        filenames = Variable.get("si_sftp_filenames", default_var="{}", deserialize_json=True) or {}
+        # Use single JSON variable with filenames; join with root as files share the same folder
         files_to_download = {
-            "stock_1c": Variable.get("si_stock_1c_sftp_path"),
-            "open_po_ic": Variable.get("si_open_po_ic_sftp_path"),
-            "transit": Variable.get("si_transit_sftp_path"),
-            "stock_for_customer": Variable.get("si_stock_for_customer_sftp_path")
+            "stock_1c": os.path.join('/', filenames.get("stock_1c")) if filenames.get("stock_1c") else None,
+            "open_po_ic": os.path.join('/', filenames.get("open_po_ic")) if filenames.get("open_po_ic") else None,
+            "transit": os.path.join('/', filenames.get("transit")) if filenames.get("transit") else None,
+            "stock_for_customer": os.path.join('/', filenames.get("stock_for_customer")) if filenames.get("stock_for_customer") else None,
         }
         
         local_filepaths = {}
