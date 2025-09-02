@@ -20,7 +20,7 @@ with DAG(
     
     @task
     def get_report_task() -> pd.DataFrame:
-        return get_stock_report_df(pg_conn_id=Variable.get("si_pg_conn_id"))
+        return get_stock_report_df(pg_conn_id='pg_prod')
 
     @task
     def send_report_task(report_df: pd.DataFrame):
