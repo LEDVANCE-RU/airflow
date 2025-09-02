@@ -33,9 +33,9 @@ with DAG(
         required_files = ["stock_1c", "open_po_ic", "transit", "stock_for_customer"]
         filenames = Variable.get("si_sftp_filenames", default="{}", deserialize_json=True) or {}
 
-        if not all(filenames.get(name) for name in required_files):
-            missing = [name for name in required_files if not filenames.get(name)]
-            raise AirflowException(f"Missing files: {', '.join(missing)}")
+        missing = [name for name in required_files if not filenames.get(name)]
+        if missing:
+            raise AirflowException(f"Missing filenames: {', '.join(missing)}")
 
         files_to_download = {name: os.path.join("/", filenames[name]) for name in required_files}
         
