@@ -29,13 +29,15 @@ with DAG(
         os.makedirs(local_dp, exist_ok=True)
         
         sftp_hook = SFTPHook("sftp_1c")
-        
-        files_to_download = {
-            "stock_1c": Variable.get("si_stock_1c_sftp_path"),
-            "open_po_ic": Variable.get("si_open_po_ic_sftp_path"),
-            "transit": Variable.get("si_transit_sftp_path"),
-            "stock_for_customer": Variable.get("si_stock_for_customer_sftp_path")
-        }
+
+        required_files = ["stock_1c", "open_po_ic", "transit", "stock_for_customer"]
+        filenames = Variable.get("si_sftp_filenames", default="{}", deserialize_json=True) or {}
+
+        missing = [name for name in required_files if not filenames.get(name)]
+        if missing:
+            raise AirflowException(f"Missing filenames: {', '.join(missing)}")
+
+        files_to_download = {name: os.path.join("/", filenames[name]) for name in required_files}
         
         local_filepaths = {}
         failed_keys = []
