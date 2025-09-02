@@ -29,15 +29,15 @@ with DAG(
         os.makedirs(local_dp, exist_ok=True)
         
         sftp_hook = SFTPHook("sftp_1c")
-        
-        filenames = Variable.get("si_sftp_filenames", default_var="{}", deserialize_json=True) or {}
-        # Use single JSON variable with filenames; join with root as files share the same folder
-        files_to_download = {
-            "stock_1c": os.path.join('/', filenames.get("stock_1c")) if filenames.get("stock_1c") else None,
-            "open_po_ic": os.path.join('/', filenames.get("open_po_ic")) if filenames.get("open_po_ic") else None,
-            "transit": os.path.join('/', filenames.get("transit")) if filenames.get("transit") else None,
-            "stock_for_customer": os.path.join('/', filenames.get("stock_for_customer")) if filenames.get("stock_for_customer") else None,
-        }
+
+        required_files = ["stock_1c", "open_po_ic", "transit", "stock_for_customer"]
+        filenames = Variable.get("si_sftp_filenames", default="{}", deserialize_json=True) or {}
+
+        if not all(filenames.get(name) for name in required_files):
+            missing = [name for name in required_files if not filenames.get(name)]
+            raise AirflowException(f"Missing files: {', '.join(missing)}")
+
+        files_to_download = {name: os.path.join("/", filenames[name]) for name in required_files}
         
         local_filepaths = {}
         failed_keys = []
