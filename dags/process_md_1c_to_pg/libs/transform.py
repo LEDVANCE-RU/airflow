@@ -16,6 +16,29 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
         if col not in df.columns:
             df[col] = None
     df = df[dest_columns]
+
+    if 'ic' in df.columns:
+        df = df[df['ic'].fillna('').astype(str).str.strip().ne('')]
+    if 'items_type' in df.columns:
+        df = df[~df['items_type'].astype(str).str.strip().str.lower().isin(['total', 'итого'])]
+
+    if 'deletion_mark' in df.columns:
+        df['deletion_mark'] = (
+            df['deletion_mark']
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .map({'true': True, 'false': False, '1': True, '0': False, 'да': True, 'нет': False, 'y': True, 'n': False})
+        )
+
+    if 'price_federal_wo_vat' in df.columns:
+        df['price_federal_wo_vat'] = (
+            df['price_federal_wo_vat']
+            .astype(str)
+            .str.replace(r'[^0-9,\.\-+]', '', regex=True)
+            .str.replace(',', '.', regex=False)
+        )
+
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
     df.to_csv(export_fp,
               index=False,
