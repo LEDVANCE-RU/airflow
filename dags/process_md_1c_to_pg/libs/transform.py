@@ -30,13 +30,29 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
             .str.lower()
             .map({'true': True, 'false': False, '1': True, '0': False, 'да': True, 'нет': False, 'y': True, 'n': False})
         )
-
+    
     if 'price_federal_wo_vat' in df.columns:
-        df['price_federal_wo_vat'] = (
-            df['price_federal_wo_vat']
-            .astype(str)
-            .str.replace(r'[^0-9,\.\-+]', '', regex=True)
+        s = (
+            df['price_federal_wo_vat'].astype(str)
+            .str.replace(r'[\s\u00A0]', '', regex=True)
             .str.replace(',', '.', regex=False)
+            .str.replace(r'[^0-9.\-+]', '', regex=True)
+            .str.replace(r'\.(?=.*\.)', '', regex=True)
+        )
+        df['price_federal_wo_vat'] = pd.to_numeric(s, errors='coerce')
+    
+    if 'ean' in df.columns:
+        df['ean'] = (
+            df['ean'].astype(str)
+            .str.replace(r'\.0$', '', regex=True)
+            .str.replace(r'\D', '', regex=True)
+        )
+    
+    if 'priority' in df.columns:
+        df['priority'] = (
+            df['priority'].astype(str)
+            .str.replace(r'[^0-9\-+]', '', regex=True)
+            .str.extract(r'([+-]?\d+)', expand=False)
         )
 
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
