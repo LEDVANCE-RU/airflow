@@ -2,7 +2,7 @@ STOCK_REPORT_SQL = """
 WITH stocks AS (
     SELECT
       ean,
-      SUM(COALESCE(avail, 0)) AS avail
+      SUM(COALESCE(free_stock, 0)) AS avail
     FROM
       si.stock_for_customer
     GROUP BY ean
