@@ -23,9 +23,9 @@ WITH stocks AS (
       si.ean_add
   )
   SELECT
-    p.ean::numeric,
-    p.description,
-    ROUND(COALESCE(s.avail, 0))::numeric
+    p.ean::numeric AS "EAN",
+    p.description AS "Наименование",
+    ROUND(COALESCE(s.avail, 0))::numeric AS "Доступно"
   FROM
     pl p
     LEFT JOIN stocks s ON (p.ean = s.ean)
