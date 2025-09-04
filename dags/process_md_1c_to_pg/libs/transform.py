@@ -8,7 +8,15 @@ import logging
 from process_md_1c_to_pg.libs.mapping import MdFieldsMap
 
 def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_key: str) -> str:
-    df = pd.read_excel(in_fp, dtype=str)
+    def to_decimal(v):
+        return pd.to_numeric(str(v).replace('\xa0', '').replace(' ', '').replace(',', '.'), errors='coerce')
+
+    price_src = {v: k for k, v in src_map.items()}.get('price_federal_wo_vat')
+    df = pd.read_excel(
+        in_fp,
+        dtype=str,
+        converters={price_src: to_decimal} if price_src else None
+    )
     df.rename(columns=src_map, inplace=True)
     dest_columns = list(dest_map.keys())
     df = df[df.columns.intersection(dest_columns)]
@@ -28,18 +36,8 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
             .astype(str)
             .str.strip()
             .str.lower()
-            .map({'true': True, 'false': False, '1': True, '0': False, 'да': True, 'нет': False, 'y': True, 'n': False})
+            .isin({'true', '1', 'да', 'y', 'yes'})
         )
-    
-    if 'price_federal_wo_vat' in df.columns:
-        s = (
-            df['price_federal_wo_vat'].astype(str)
-            .str.replace(r'[\s\u00A0]', '', regex=True)
-            .str.replace(',', '.', regex=False)
-            .str.replace(r'[^0-9.\-+]', '', regex=True)
-            .str.replace(r'\.(?=.*\.)', '', regex=True)
-        )
-        df['price_federal_wo_vat'] = pd.to_numeric(s, errors='coerce')
     
     if 'ean' in df.columns:
         df['ean'] = (
