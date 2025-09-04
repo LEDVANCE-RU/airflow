@@ -36,8 +36,12 @@ def send_report_by_email(report_df: pd.DataFrame, recipients: dict, tmp_dir: str
         to=to,
         cc=cc,
         bcc=bcc,
-        subject='Stock Report',
-        html_content='Please find the attached stock report.',
+        subject='АО "ЛЕДВАНС": Остатки на складе на текущую дату',
+        html_content=(
+            "<p>Добрый день,</p>" 
+            "<p>Письмо было сформировано и отправлено автоматически. Просьба не отвечать на данное письмо.</p>"
+            "<p>По всем возникающим вопросам Вы можете обращаться к ответственному сотруднику отдела по работе с клиентами АО «ЛЕДВАНС»</p>"
+            ),
         files=[filepath],
     )
     logging.info("Email sent to: to=%s cc=%s bcc=%s", to, cc, bcc)
