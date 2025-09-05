@@ -8,11 +8,33 @@ import logging
 from process_md_1c_to_pg.libs.mapping import MdFieldsMap
 
 def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_key: str) -> str:
-    # def to_decimal(v):
-    #     return pd.to_numeric(str(v).replace('\xa0', '').replace(' ', '').replace(',', '.'), errors='coerce')
-    # price_src = {v: k for k, v in src_map.items()}.get('price_federal_wo_vat')
-    # df = pd.read_excel(in_fp, dtype=str, converters={price_src: to_decimal} if price_src else None)
-    df = pd.read_excel(in_fp, dtype=str)
+    def to_decimal(v):
+        return pd.to_numeric(str(v).replace('\xa0', '').replace(' ', '').replace(',', '.'), errors='coerce')
+
+    def to_int(v):
+        s = str(v).replace('\xa0', '').replace(' ', '').replace(',', '.')
+        x = pd.to_numeric(s, errors='coerce')
+        return None if pd.isna(x) else int(float(x))
+
+    converters_map: dict[str, callable] = {}
+    for src_col, dest_name in src_map.items():
+        field = dest_map.get(dest_name)
+        if not field or not isinstance(field.type, str):
+            continue
+        if 'numeric' in field.type:
+            converters_map[src_col] = to_decimal
+        elif 'integer' in field.type:
+            converters_map[src_col] = to_int
+
+    dtype_map: dict[str, str] = {src_col: str for src_col in src_map.keys() if src_col not in converters_map}
+
+    df = pd.read_excel(
+        in_fp,
+        dtype=dtype_map if dtype_map else None,
+        converters=converters_map or None
+    )
+
+    df.dropna(how='all', inplace=True)
     df.rename(columns=src_map, inplace=True)
     dest_columns = list(dest_map.keys())
     df = df[df.columns.intersection(dest_columns)]
@@ -34,20 +56,6 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
             .str.lower()
             .isin(['true', '1', 'да', 'y', 'yes'])
         )
-    
-    # if 'ean' in df.columns:
-    #     df['ean'] = (
-    #         df['ean'].astype(str)
-    #         .str.replace(r'\.0$', '', regex=True)
-    #         .str.replace(r'\D', '', regex=True)
-    #     )
-    
-    # if 'priority' in df.columns:
-    #     df['priority'] = (
-    #         df['priority'].astype(str)
-    #         .str.replace(r'[^0-9\-+]', '', regex=True)
-    #         .str.extract(r'([+-]?\d+)', expand=False)
-    #     )
 
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
     df.to_csv(export_fp,
