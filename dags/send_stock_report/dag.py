@@ -34,7 +34,7 @@ with DAG(
     @teardown
     def cleanup_task():
         tmp_dir = Variable.get('tmp_dir_path')
-        filepath = os.path.join(tmp_dir, 'stock_report.xlsx')
+        filepath = os.path.join(tmp_dir, f'АО ЛЕДВАНС остатки на {datetime.now().strftime("%d.%m.%Y")}.xlsx')
         if os.path.exists(filepath):
             os.remove(filepath)
             logging.info("Cleaned up temporary file: %s", filepath)
