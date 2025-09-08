@@ -61,7 +61,7 @@ class MdFieldsMap:
             'Наименование для печати': 'printname',
             'Характеристика ценообразования': 'pricing_type',
             'Упак.': 'package',
-            'FEDERAL_BASED_ON_DISC': 'price_federal_wo_vat',
+            'Цена': 'price_federal_wo_vat',
         }
 
     @classmethod
