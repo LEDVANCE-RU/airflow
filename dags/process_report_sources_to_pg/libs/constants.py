@@ -1,0 +1,96 @@
+KEY_TO_TABLE = {
+    '1C_master_data_AG': 'md.master_data_ag',
+    'MTD_report_AG': 'md.mtd_report_ag_data',
+    'LTM_report_AG': 'md.ltm_report_ag_data',
+    'STOCK_report_AG': 'stocks.stock_report_ag',
+    '1C_IC_AG': 'md.ic_ag',
+    '1C_EAN_AG': 'md.ean_ag',
+    'PO_report_NEW_AG': 'stocks.po_report_new_ag',
+    'BO_report_AG': 'stocks.bo_report_ag',
+}
+
+PERIOD_TABLES = {
+    'MTD_report_AG': 'md.mtd_report_ag_period',
+    'LTM_report_AG': 'md.ltm_report_ag_period',
+}
+
+TABLE_COLUMNS = {
+    'md.master_data_ag': [
+        'description', 'uom', 'article', 'import_', 'kind_of_goods', 'type_of_goods', 'price_group',
+        'analytic_group', 'fin_group', 'hs_code', 'co_o', 'nom_group', 'nom_group_group',
+        'nom_group_group_group', 'nom_group_group_group_group', 'volume'
+    ],
+    'md.mtd_report_ag_period': ['mtd_period', 'mtd_from', 'mtd_to'],
+    'md.mtd_report_ag_data': ['ean', 'ic', 'open_stock', 'in_', 'out_', 'close_stock', 'sku'],
+    'md.ltm_report_ag_period': ['ltm_period', 'ltm_from', 'ltm_to'],
+    'md.ltm_report_ag_data': ['ean', 'ic', 'open_stock', 'in_', 'out_', 'close_stock', 'sku'],
+    'stocks.stock_report_ag': ['ean', 'description', 'ic', 'uom', 'open_stock_pce', 'open_stock_rub', 'stock_pce', 'stock_rub', 'sku', 'variance_rub'],
+    'md.ic_ag': ['ic', 'project', 'hs_code', 'country_of_origin', 'localization', 'life_status', 'wh_status', 'volume'],
+    'md.ean_ag': ['description', 'ean', 'hs_code'],
+    'stocks.po_report_new_ag': ['project', 'life_status', 'ean', 'ic', 'description', 'date', 'po_qty', 'sku', 'article'],
+    'stocks.bo_report_ag': ['ean', 'description', 'ic', 'uom', 'stock', 'in_outbound', 'reserved', 'available', 'sku'],
+}
+
+SQL_CREATE_TABLE = {
+    'md.master_data_ag': (
+        'CREATE TABLE IF NOT EXISTS md.master_data_ag ('
+        'description VARCHAR(100), uom VARCHAR(50), article VARCHAR(50), import_ BOOLEAN, '
+        'kind_of_goods VARCHAR(200), type_of_goods VARCHAR(200), price_group VARCHAR(100), '
+        'analytic_group VARCHAR(200), fin_group VARCHAR(100), hs_code VARCHAR(100), co_o VARCHAR(100), '
+        'nom_group VARCHAR(100), nom_group_group VARCHAR(100), nom_group_group_group VARCHAR(100), '
+        'nom_group_group_group_group VARCHAR(100), volume NUMERIC(20,3)'
+        ');'
+    ),
+    'md.mtd_report_ag_period': (
+        'CREATE TABLE IF NOT EXISTS md.mtd_report_ag_period ('
+        'mtd_period VARCHAR(100), mtd_from DATE, mtd_to DATE'
+        ');'
+    ),
+    'md.mtd_report_ag_data': (
+        'CREATE TABLE IF NOT EXISTS md.mtd_report_ag_data ('
+        'ean VARCHAR(50), ic VARCHAR(50), open_stock NUMERIC(20,0), in_ NUMERIC(20,0), out_ NUMERIC(20,0), '
+        'close_stock NUMERIC(20,0), sku VARCHAR(100)'
+        ');'
+    ),
+    'md.ltm_report_ag_period': (
+        'CREATE TABLE IF NOT EXISTS md.ltm_report_ag_period ('
+        'ltm_period VARCHAR(100), ltm_from DATE, ltm_to DATE'
+        ');'
+    ),
+    'md.ltm_report_ag_data': (
+        'CREATE TABLE IF NOT EXISTS md.ltm_report_ag_data ('
+        'ean VARCHAR(50), ic VARCHAR(50), open_stock NUMERIC(20,0), in_ NUMERIC(20,0), out_ NUMERIC(20,0), '
+        'close_stock NUMERIC(20,0), sku VARCHAR(100)'
+        ');'
+    ),
+    'stocks.stock_report_ag': (
+        'CREATE TABLE IF NOT EXISTS stocks.stock_report_ag ('
+        'ean VARCHAR(50), description VARCHAR(100), ic VARCHAR(50), uom VARCHAR(10), '
+        'open_stock_pce NUMERIC(20,0), open_stock_rub NUMERIC(20,2), stock_pce NUMERIC(20,0), stock_rub NUMERIC(20,2), '
+        'sku VARCHAR(100), variance_rub NUMERIC(20,2)'
+        ');'
+    ),
+    'md.ic_ag': (
+        'CREATE TABLE IF NOT EXISTS md.ic_ag ('
+        'ic VARCHAR(50), project VARCHAR(500), hs_code VARCHAR(100), country_of_origin VARCHAR(100), '
+        'localization VARCHAR(100), life_status VARCHAR(100), wh_status VARCHAR(100), volume NUMERIC(20,6)'
+        ');'
+    ),
+    'md.ean_ag': (
+        'CREATE TABLE IF NOT EXISTS md.ean_ag ('
+        'description VARCHAR(100), ean VARCHAR(50), hs_code VARCHAR(100)'
+        ');'
+    ),
+    'stocks.po_report_new_ag': (
+        'CREATE TABLE IF NOT EXISTS stocks.po_report_new_ag ('
+        'project VARCHAR(500), life_status VARCHAR(100), ean VARCHAR(50), ic VARCHAR(50), description VARCHAR(100), '
+        'date DATE, po_qty NUMERIC(20,0), sku VARCHAR(100), article VARCHAR(500)'
+        ');'
+    ),
+    'stocks.bo_report_ag': (
+        'CREATE TABLE IF NOT EXISTS stocks.bo_report_ag ('
+        'ean VARCHAR(50), description VARCHAR(100), ic VARCHAR(50), uom VARCHAR(50), stock NUMERIC(20,0), '
+        'in_outbound NUMERIC(20,0), reserved NUMERIC(20,0), available NUMERIC(20,0), sku VARCHAR(200)'
+        ');'
+    ),
+}
