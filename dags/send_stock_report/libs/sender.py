@@ -21,14 +21,6 @@ def send_report_by_email(report_df: pd.DataFrame, recipients: dict, tmp_dir: str
         logging.info("Report is empty, skipping email.")
         return
 
-    if "EAN" in report_df.columns:
-        report_df["EAN"] = (
-            report_df["EAN"]
-            .astype("string")
-            .fillna("")
-            .str.replace(r"\.0+$", "", regex=True)
-        )
-
     filename = 'stock_report.xlsx'
     filepath = os.path.join(tmp_dir, filename)
 
