@@ -68,7 +68,7 @@ with DAG(
 
     @task
     def upload_task(transformed_data_json: str):
-        pg_hook = PgMdHook(pg_conn_id=Variable.get("md_1c_pg_conn_id"))
+        pg_hook = PgMdHook(pg_conn_id='pg_prod')
         pg_hook.upload_data(transformed_data_json)
         logging.info("Upload complete.")
 

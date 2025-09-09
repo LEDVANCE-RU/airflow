@@ -28,14 +28,16 @@ with DAG(
         local_dp = os.path.join(Variable.get('tmp_dir_path'), SI_DIR_NAME)
         os.makedirs(local_dp, exist_ok=True)
         
-        sftp_hook = SFTPHook(Variable.get("si_sftp_conn_id"))
-        
-        files_to_download = {
-            "stock_1c": Variable.get("si_stock_1c_sftp_path"),
-            "open_po_ic": Variable.get("si_open_po_ic_sftp_path"),
-            "transit": Variable.get("si_transit_sftp_path"),
-            "stock_for_customer": Variable.get("si_stock_for_customer_sftp_path")
-        }
+        sftp_hook = SFTPHook("sftp_1c")
+
+        required_files = ["stock_1c", "open_po_ic", "transit", "stock_for_customer"]
+        filenames = Variable.get("si_sftp_filenames", default="{}", deserialize_json=True) or {}
+
+        missing = [name for name in required_files if not filenames.get(name)]
+        if missing:
+            raise AirflowException(f"Missing filenames: {', '.join(missing)}")
+
+        files_to_download = {name: os.path.join("/", filenames[name]) for name in required_files}
         
         local_filepaths = {}
         failed_keys = []
@@ -67,7 +69,7 @@ with DAG(
 
     @task
     def upload_task(transformed_data_json: str):
-        pg_hook = PgSiHook(pg_conn_id=Variable.get("si_pg_conn_id"))
+        pg_hook = PgSiHook(pg_conn_id='pg_prod')
         pg_hook.upload_data(transformed_data_json)
         logging.info("Upload complete.")
 
