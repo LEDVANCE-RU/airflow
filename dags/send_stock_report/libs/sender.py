@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import pandas as pd
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.smtp.hooks.smtp import SmtpHook
