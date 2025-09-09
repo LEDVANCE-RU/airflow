@@ -7,6 +7,7 @@ KEY_TO_TABLE = {
     '1C_EAN_AG': 'md.ean_ag',
     'PO_report_NEW_AG': 'stocks.po_report_new_ag',
     'BO_report_AG': 'stocks.bo_report_ag',
+    '1C_packing_AG': 'md.packing_ag',
 }
 
 PERIOD_TABLES = {
@@ -29,6 +30,14 @@ TABLE_COLUMNS = {
     'md.ean_ag': ['description', 'ean', 'hs_code'],
     'stocks.po_report_new_ag': ['project', 'life_status', 'ean', 'ic', 'description', 'date', 'po_qty', 'sku', 'article'],
     'stocks.bo_report_ag': ['ean', 'description', 'ic', 'uom', 'stock', 'in_outbound', 'reserved', 'available', 'sku'],
+    'md.packing_ag': [
+        'pack_type', 'is_dimensionless', 'weight_uom', 'height_uom', 'depth_uom', 'unit',
+        'dims_repr', 'volume_uom', 'size_type', 'width_uom', 'tare_characteristic', 'measure_type',
+        'full_name', 'intl_abbr', 'package_type', 'accounting_type', 'processing_multiplicity',
+        'axelot_guid', 'ic', 'ean', 'is_indivisible', 'pack_level', 'gross_weight', 'height',
+        'depth', 'numerator', 'denominator', 'volume', 'width', 'packs_qty', 'layers_per_pallet',
+        'transport_boxes_per_pallet'
+    ],
 }
 
 SQL_CREATE_TABLE = {
@@ -91,6 +100,16 @@ SQL_CREATE_TABLE = {
         'CREATE TABLE IF NOT EXISTS stocks.bo_report_ag ('
         'ean VARCHAR(50), description VARCHAR(100), ic VARCHAR(50), uom VARCHAR(50), stock NUMERIC(20,0), '
         'in_outbound NUMERIC(20,0), reserved NUMERIC(20,0), available NUMERIC(20,0), sku VARCHAR(200)'
+        ');'
+    ),
+    'md.packing_ag': (
+        'CREATE TABLE IF NOT EXISTS md.packing_ag ('
+        'pack_type VARCHAR(100), is_dimensionless VARCHAR(50), weight_uom VARCHAR(50), height_uom VARCHAR(50), depth_uom VARCHAR(50), unit VARCHAR(50), '
+        'dims_repr VARCHAR(100), volume_uom VARCHAR(50), size_type VARCHAR(100), width_uom VARCHAR(50), tare_characteristic VARCHAR(100), measure_type VARCHAR(100), '
+        'full_name VARCHAR(200), intl_abbr VARCHAR(50), package_type VARCHAR(100), accounting_type VARCHAR(200), processing_multiplicity VARCHAR(200), '
+        'axelot_guid VARCHAR(100), ic VARCHAR(200), ean VARCHAR(50), is_indivisible VARCHAR(50), pack_level VARCHAR(100), gross_weight NUMERIC(20,3), height NUMERIC(20,3), '
+        'depth NUMERIC(20,3), numerator NUMERIC(20,6), denominator NUMERIC(20,6), volume NUMERIC(20,6), width NUMERIC(20,3), packs_qty NUMERIC(20,0), layers_per_pallet NUMERIC(20,0), '
+        'transport_boxes_per_pallet NUMERIC(20,0)'
         ');'
     ),
 }

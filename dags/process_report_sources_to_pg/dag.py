@@ -39,7 +39,8 @@ with DAG(
             '1C_IC_AG',
             '1C_EAN_AG',
             'PO_report_NEW_AG',
-            'BO_report_AG'
+            'BO_report_AG',
+            '1C_packing_AG'
         ]
 
         filenames = Variable.get("report_sources_sftp_filenames", default="{}", deserialize_json=True) or {}
