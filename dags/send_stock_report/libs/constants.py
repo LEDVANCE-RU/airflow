@@ -23,7 +23,7 @@ WITH stocks AS (
       si.ean_add
   )
   SELECT
-    p.ean::text AS "EAN",
+    p.ean AS "EAN",
     p.description AS "Наименование",
     ROUND(COALESCE(s.avail, 0))::numeric AS "Доступно"
   FROM
