@@ -41,12 +41,13 @@ with DAG(
         
         local_filepaths = {}
         failed_keys = []
+        run_hex = uuid.uuid4().hex
 
         for key, remote_fp in files_to_download.items():
             if not remote_fp:
                 logging.info("SFTP path for %s is not configured. Skipping.", key)
                 continue
-            local_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_{key}.txt")
+            local_fp = os.path.join(local_dp, f"{run_hex}_{key}.xlsx")
             try:
                 sftp_hook.retrieve_file(remote_fp, local_fp)
                 local_filepaths[key] = local_fp
