@@ -43,7 +43,7 @@ with DAG(
             '1C_packing_AG'
         ]
 
-        filenames = Variable.get("report_sources_sftp_filenames", default="{}", deserialize_json=True) or {}
+        filenames = Variable.get("report_sources_sftp_filenames", default="{}", deserialize_json=True)
 
         missing = [name for name in required_files if not filenames.get(name)]
         if missing:
