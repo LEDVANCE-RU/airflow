@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import pandas as pd
+from datetime import datetime
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.smtp.hooks.smtp import SmtpHook
 from send_stock_report.libs.constants import STOCK_REPORT_SQL
@@ -21,7 +22,7 @@ def send_report_by_email(report_df: pd.DataFrame, recipients: dict, tmp_dir: str
         logging.info("Report is empty, skipping email.")
         return
 
-    filename = 'stock_report.xlsx'
+    filename = f'АО ЛЕДВАНС остатки на {datetime.now().strftime("%d.%m.%Y")}.xlsx'
     filepath = os.path.join(tmp_dir, filename)
 
     report_df.to_excel(filepath, index=False)
