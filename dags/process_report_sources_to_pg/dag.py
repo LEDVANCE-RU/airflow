@@ -53,13 +53,14 @@ with DAG(
 
         local_filepaths = {}
         failed_keys = []
+        run_hex = uuid.uuid4().hex
 
         for key, remote_fp in files_to_download.items():
             if not remote_fp:
                 logging.info("SFTP path for %s is not configured. Skipping.", key)
                 continue
-            ext = os.path.splitext(remote_fp)[1] or '.xlsx'
-            local_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_{key}{ext}")
+            ext = os.path.splitext(remote_fp)[1]
+            local_fp = os.path.join(local_dp, f"{run_hex}_{key}{ext}")
             try:
                 sftp_hook.retrieve_file(remote_fp, local_fp)
                 local_filepaths[key] = local_fp
@@ -99,12 +100,13 @@ with DAG(
             files_to_delete.extend(json.loads(transformed_table_to_file_json).values())
 
         for fp in files_to_delete:
-            if fp and os.path.exists(fp):
-                try:
-                    os.remove(fp)
-                    logging.info("File %s removed.", fp)
-                except Exception as e:
-                    logging.warning("Could not remove file %s: %s", fp, e)
+            if not fp or not os.path.exists(fp):
+                continue
+            try:
+                os.remove(fp)
+                logging.info("File %s removed.", fp)
+            except Exception as e:
+                logging.warning("Could not remove file %s: %s", fp, e)
 
     downloaded_files = download_task()
     transformed = transform_task(downloaded_files)
