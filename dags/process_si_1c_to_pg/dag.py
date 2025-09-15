@@ -37,7 +37,7 @@ with DAG(
         if missing:
             raise AirflowException(f"Missing filenames: {', '.join(missing)}")
 
-        files_to_download = {name: os.path.join("/", filenames[name]) for name in required_files}
+        files_to_download = {name: f"/{filenames[name]}" for name in required_files}
         
         local_filepaths = {}
         failed_keys = []
