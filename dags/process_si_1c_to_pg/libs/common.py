@@ -22,26 +22,14 @@ def read_excel_with_multiindex(in_fp: str, header_spec: Any) -> pd.DataFrame:
 
 
 def flatten_columns(columns) -> list[str]:
-    flat: list[str] = []
+    if not isinstance(columns, pandas.MultiIndex):
+        return columns
+    pattern = re.compile(r'Unnamed: \d+_level_\d+')
+    renamed_cols = []
     for col in columns:
-        parts: list[str] = []
-        raw_parts = list(col) if isinstance(col, tuple) else [col]
-        for p in raw_parts:
-            if p is None or (isinstance(p, float) and pd.isna(p)):
-                continue
-            s = str(p).strip()
-            if not s:
-                continue
-            if s.startswith('Unnamed'):
-                continue
-            if s == 'Сейчас':
-                continue
-            parts.append(s)
-        name = '.'.join(parts)
-        if name.startswith('Ожидается.'):
-            name = name.replace('Ожидается.', 'Ожидается ')
-        flat.append(name)
-    return flat
+        renamed_cols.append('.'.join(filter(None, [re.sub(pattern, '', subcol) 
+                                                   for subcol in col])))
+    return renamed_cols
 
 
 def normalize_types(df: pd.DataFrame, dest_map: dict) -> pd.DataFrame:
