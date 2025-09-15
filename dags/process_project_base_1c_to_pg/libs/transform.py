@@ -21,12 +21,7 @@ def transform_project_base(in_fp: str, out_dp: str, src_map: dict, dest_map: dic
     df.rename(columns=src_map, inplace=True)
 
     dest_columns = list(dest_map.keys())
-    df = df[df.columns.intersection(dest_columns)]
-    for col in dest_columns:
-        if col not in df.columns:
-            df[col] = None
-
-    df = df[dest_columns]
+    df = df.reindex(columns=dest_columns)
 
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
     df.to_csv(
