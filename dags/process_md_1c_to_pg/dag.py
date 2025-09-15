@@ -15,7 +15,7 @@ from process_md_1c_to_pg.libs.upload import PgMdHook
 with DAG(
     dag_id="process_md_1c_to_pg",
     start_date=datetime(2025, 5, 1, tzinfo=TZ_MSK),
-    schedule='30 8 * * 1-5',
+    schedule='0 20 * * 1-5',
     catchup=False,
     tags=['1c', 'md', 'postgresql']
 ) as dag:

@@ -49,8 +49,8 @@ class MdFieldsMap:
             'aug_key': Field('aug_key', 'character varying(200)'),
             'ag_key': Field('ag_key', 'character varying(200)'),
             'bs_key': Field('bs_key', 'character varying(200)'),
-            'deletion_mark': Field('deletion_mark', 'bool'),
-            'priority': Field('priority', 'int'),
+            'deletion_mark': Field('deletion_mark', 'boolean'),
+            'priority': Field('priority', 'integer'),
         }
 
     @classmethod
@@ -61,7 +61,7 @@ class MdFieldsMap:
             'Наименование для печати': 'printname',
             'Характеристика ценообразования': 'pricing_type',
             'Упак.': 'package',
-            'FEDERAL_BASED_ON_DISC': 'price_federal_wo_vat',
+            'Цена': 'price_federal_wo_vat',
         }
 
     @classmethod
@@ -72,5 +72,5 @@ class MdFieldsMap:
             'printname': Field('printname', 'character varying(200)'),
             'pricing_type': Field('pricing_type', 'character varying(200)'),
             'package': Field('package', 'character varying(200)'),
-            'price_federal_wo_vat': Field('price_federal_wo_vat', 'numeric(18, 2)'),
+            'price_federal_wo_vat': Field('price_federal_wo_vat', 'numeric(10, 2)'),
         }
