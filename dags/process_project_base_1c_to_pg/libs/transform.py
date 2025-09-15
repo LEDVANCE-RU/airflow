@@ -12,8 +12,7 @@ def transform_project_base(in_fp: str, out_dp: str, src_map: dict, dest_map: dic
     df = pd.read_excel(in_fp, dtype=str)
     df.columns = [c.strip() if isinstance(c, str) else c for c in df.columns]
 
-    if 'Краткое описание' in df.columns:
-        df.drop(columns=['Краткое описание'], inplace=True)
+    df.drop(columns=['Краткое описание'], inplace=True, errors='ignore')
 
     proj_col = 'Проект'
     if proj_col in df.columns:
