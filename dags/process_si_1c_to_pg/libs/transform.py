@@ -4,14 +4,21 @@ import os
 import uuid
 import pandas as pd
 import logging
+from dataclasses import dataclass
+from typing import Callable, Any
 
 from process_si_1c_to_pg.libs.mapping import SiFieldsMap
 from process_si_1c_to_pg.libs.common import (
     drop_trailing_total,
     read_excel_with_multiindex,
     flatten_columns,
-    normalize_types,
 )
+
+@dataclass(frozen=True)
+class DatasetSpec:
+    src_map: Callable[[], dict]
+    dest_map: Callable[[], dict]
+    header: Any
 
 def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_key: str, skiprows: int, header_spec=None) -> str:
     if not src_map or not dest_map:
@@ -32,8 +39,6 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     for col in dest_columns:
         if col not in df.columns:
             df[col] = None
-
-    df = normalize_types(df, dest_map)
 
     if df.empty or df[dest_columns].dropna(how='all').empty:
         logging.error("No data after normalization for %s.", file_key)
@@ -56,24 +61,24 @@ def transform_si_data(downloaded_files_json: str, out_dp: str):
     downloaded_files = json.loads(downloaded_files_json)
     transformed_filepaths = {}
 
-    transform_params = {
-        "stock_1c": {"src_map": SiFieldsMap.stock_1c_src_map, "dest_map": SiFieldsMap.stock_1c_dest_map, "skiprows": 0, "header": [0, 1, 2, 3]},
-        "open_po_ic": {"src_map": SiFieldsMap.open_po_ic_src_map, "dest_map": SiFieldsMap.open_po_ic_dest_map, "skiprows": 0, "header": [0, 1]},
-        "transit": {"src_map": SiFieldsMap.transit_src_map, "dest_map": SiFieldsMap.transit_dest_map, "skiprows": 0, "header": 0},
-        "stock_for_customer": {"src_map": SiFieldsMap.stock_for_customer_src_map, "dest_map": SiFieldsMap.stock_for_customer_dest_map, "skiprows": 0, "header": [0, 1, 2, 3]},
+    specs: dict[str, DatasetSpec] = {
+        "stock_1c": DatasetSpec(SiFieldsMap.stock_1c_src_map, SiFieldsMap.stock_1c_dest_map, [0, 1, 2, 3]),
+        "open_po_ic": DatasetSpec(SiFieldsMap.open_po_ic_src_map, SiFieldsMap.open_po_ic_dest_map, [0, 1]),
+        "transit": DatasetSpec(SiFieldsMap.transit_src_map, SiFieldsMap.transit_dest_map, 0),
+        "stock_for_customer": DatasetSpec(SiFieldsMap.stock_for_customer_src_map, SiFieldsMap.stock_for_customer_dest_map, [0, 1, 2, 3]),
     }
 
-    for key, params in transform_params.items():
+    for key, spec in specs.items():
         in_fp = downloaded_files.get(key)
         if in_fp:
             transformed_fp = transform_data(
                 in_fp=in_fp,
                 out_dp=out_dp,
-                src_map=params["src_map"](),
-                dest_map=params["dest_map"](),
+                src_map=spec.src_map(),
+                dest_map=spec.dest_map(),
                 file_key=key,
-                skiprows=params["skiprows"],
-                header_spec=params.get("header")
+                skiprows=0,
+                header_spec=spec.header,
             )
             if transformed_fp:
                 transformed_filepaths[key] = transformed_fp
