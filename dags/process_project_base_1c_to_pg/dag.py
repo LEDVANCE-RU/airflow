@@ -41,7 +41,7 @@ with DAG(
 
         for key, remote_fp in files_to_download.items():
             if not remote_fp:
-                logging.info("SFTP path for %s is not configured. Skipping.", key)
+                logging.warning("SFTP path for %s is not configured. Skipping.", key)
                 continue
             local_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_{os.path.basename(remote_fp)}")
             try:
