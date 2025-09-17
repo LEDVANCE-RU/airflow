@@ -2,7 +2,6 @@ import csv
 import json
 import os
 import uuid
-import pandas as pd
 import logging
 from dataclasses import dataclass
 from typing import Callable, Any
@@ -41,8 +40,9 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
             df[col] = None
 
     if df.empty or df[dest_columns].dropna(how='all').empty:
-        logging.error("No data after normalization for %s.", file_key)
-        raise ValueError(f"No data after normalization for {file_key}")
+        error_message = f"No data after normalization for {file_key}"
+        logging.error(error_message)
+        raise ValueError(error_message)
 
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
     df.to_csv(export_fp,
