@@ -5,6 +5,7 @@ import uuid
 import logging
 from dataclasses import dataclass
 from typing import Callable, Any
+import pandas as pd
 
 from process_si_1c_to_pg.libs.mapping import SiFieldsMap
 from process_si_1c_to_pg.libs.common import (
@@ -35,10 +36,13 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     dest_columns = list(dest_map.keys())
     df = df[df.columns.intersection(dest_columns)]
 
-    for col in dest_columns:
+    for col, field in dest_map.items():
         if col not in df.columns:
             df[col] = None
-
+        if 'INTEGER' in field.type:
+            s = pd.to_numeric(df[col], errors='coerce')
+            df[col] = s.astype('Int64')
+    
     if df.empty or df[dest_columns].dropna(how='all').empty:
         error_message = f"No data after normalization for {file_key}"
         logging.error(error_message)
