@@ -48,6 +48,11 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
         logging.error(error_message)
         raise ValueError(error_message)
 
+    if df.empty or df[dest_columns].dropna(how='all').empty:
+        error_message = f"No data after normalization for {file_key}"
+        logging.error(error_message)
+        raise ValueError(error_message)
+
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
     df.to_csv(export_fp,
               index=False,
