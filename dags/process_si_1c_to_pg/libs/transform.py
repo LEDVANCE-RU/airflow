@@ -34,14 +34,11 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     df.rename(columns=cleaned_src_map, inplace=True)
 
     dest_columns = list(dest_map.keys())
-    df = df[df.columns.intersection(dest_columns)]
+    df = df.reindex(columns=dest_columns)
 
     for col, field in dest_map.items():
-        if col not in df.columns:
-            df[col] = None
         if 'INTEGER' in field.type:
-            s = pd.to_numeric(df[col], errors='coerce')
-            df[col] = s.astype('Int64')
+            df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
     
     if df.empty or df[dest_columns].dropna(how='all').empty:
         error_message = f"No data after normalization for {file_key}"
