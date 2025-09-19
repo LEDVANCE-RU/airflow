@@ -2,7 +2,7 @@ STOCK_REPORT_SQL = """
 WITH stocks AS (
     SELECT
       ean::text AS ean,
-      SUM(COALESCE(avail, 0)) AS avail
+      SUM(COALESCE(free_stock, 0)) AS avail
     FROM
       si.stock_for_customer
     GROUP BY 1
@@ -29,5 +29,5 @@ WITH stocks AS (
   FROM
     pl p
     LEFT JOIN stocks s ON (p.ean = s.ean)
-  ORDER BY (p.description ~ '^[0-9]') DESC, p.description ASC;
+  ORDER BY p.description ASC;
 """
