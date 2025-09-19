@@ -4,7 +4,7 @@ WITH stocks AS (
       ean::text AS ean,
       SUM(COALESCE(avail, 0)) AS avail
     FROM
-      stocks.stock
+      si.stock_for_customer
     GROUP BY 1
   ),
   pl AS (
@@ -29,5 +29,5 @@ WITH stocks AS (
   FROM
     pl p
     LEFT JOIN stocks s ON (p.ean = s.ean)
-  ORDER BY p.id;
+  ORDER BY (p.description ~ '^[0-9]') DESC, p.description ASC;
 """
