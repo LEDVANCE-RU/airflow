@@ -21,12 +21,12 @@ class SiFieldsMap:
             'Заказ на отгрузку.Номер проекта': 'crm_id',
             'Заказ на отгрузку.Соглашение.Менеджер': 'kam',
             'Заказ на отгрузку.Номер по данным клиента': 'order_id_customer',
-            'В наличии': 'available_stock',
-            'Отгружается': 'shipped',
-            'В резерве': 'reserved',
-            'Доступно': 'free_stock',
-            'Ожидается В резерве': 'backorder',
-            'К обеспечению': 'supply_needed',
+            'Сейчас.В наличии': 'available_stock',
+            'Сейчас.Отгружается': 'shipped',
+            'Сейчас.В резерве': 'reserved',
+            'Сейчас.Доступно': 'free_stock',
+            'Сейчас.Ожидается.В резерве': 'backorder',
+            'Сейчас.К обеспечению': 'supply_needed',
         }
 
     @classmethod
@@ -65,7 +65,7 @@ class SiFieldsMap:
             'Заказ на отгрузку.Давалец': 'customer',
             'Заказ на отгрузку.Number': 'order_id',
             'Заказ на поступление.Date': 'po_date',
-            'Ожидается Поступит': 'po_qty',
+            'Ожидается.Поступит': 'po_qty',
         }
 
     @classmethod
@@ -133,12 +133,12 @@ class SiFieldsMap:
             'Артикул': 'ean',
             'Номенклатура': 'description',
             'Ед. изм.': 'unit',
-            'В наличии': 'available_stock',
-            'Отгружается': 'shipped',
-            'В резерве': 'reserved',
-            'Доступно': 'free_stock',
-            'Ожидается В резерве': 'backorder',
-            'К обеспечению': 'supply_needed',
+            'Сейчас.В наличии': 'available_stock',
+            'Сейчас.Отгружается': 'shipped',
+            'Сейчас.В резерве': 'reserved',
+            'Сейчас.Доступно': 'free_stock',
+            'Сейчас.Ожидается.В резерве': 'backorder',
+            'Сейчас.К обеспечению': 'supply_needed',
         }
 
     @classmethod
