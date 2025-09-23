@@ -1,7 +1,7 @@
 STOCK_REPORT_SQL = """
 WITH stocks AS (
     SELECT
-      ean::text AS ean,
+      btrim(ean::text) AS ean,
       SUM(COALESCE(free_stock, 0)) AS avail
     FROM
       si.stock_for_customer
@@ -9,14 +9,14 @@ WITH stocks AS (
   ),
   pl AS (
     SELECT DISTINCT
-      ean,
+      btrim(ean::text) AS ean,
       description,
       9 AS id
     FROM md.price_list
     WHERE description != 'NaN'
     UNION
     SELECT
-      ean::varchar,
+      btrim(ean::text) AS ean,
       description,
       1000000
     FROM
