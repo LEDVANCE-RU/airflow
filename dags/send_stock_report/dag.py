@@ -13,7 +13,7 @@ from send_stock_report.libs.sender import get_stock_report_df, send_report_by_em
 with DAG(
     dag_id="send_stock_report",
     start_date=datetime(2025, 5, 1, tzinfo=TZ_MSK),
-    schedule='0 9 * * *',
+    schedule='0 5 * * *',
     catchup=False,
     tags=['report', 'email'],
 ) as dag:
