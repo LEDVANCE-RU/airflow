@@ -25,7 +25,11 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
         logging.error(f"Mapping for {file_key} is empty. Cannot transform.")
         raise ValueError(f"Empty mapping for {file_key}")
 
-    df = read_excel_with_multiindex(in_fp, header_spec if header_spec is not None else [0, 1, 2, 3])
+    df = read_excel_with_multiindex(
+        in_fp,
+        header_spec if header_spec is not None else [0, 1, 2, 3],
+        dtype={'ean': 'string'}
+    )
 
     df = drop_trailing_total(df)
     df.columns = flatten_columns(df.columns)
@@ -37,13 +41,7 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     df = df.reindex(columns=dest_columns)
 
     if 'ean' in df.columns:
-        def format_ean(value):
-            if isinstance(value, float):
-                return f"{value:.0f}".strip()
-            if isinstance(value, str):
-                return value.strip()
-            return value
-        df['ean'] = df['ean'].map(format_ean)
+        df['ean'] = df['ean'].astype('string').str.strip()
 
     for col, field in dest_map.items():
         if 'INTEGER' in field.type:
