@@ -16,6 +16,16 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
         if col not in df.columns:
             df[col] = None
     df = df[dest_columns]
+
+    if 'ean' in df.columns:
+        def format_ean(value):
+            if isinstance(value, float):
+                return f"{value:.0f}".strip()
+            if isinstance(value, str):
+                return value.strip()
+            return value
+        df['ean'] = df['ean'].map(format_ean)
+    
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
     df.to_csv(export_fp,
               index=False,
