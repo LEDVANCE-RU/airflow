@@ -36,6 +36,15 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     dest_columns = list(dest_map.keys())
     df = df.reindex(columns=dest_columns)
 
+    if 'ean' in df.columns:
+        def format_ean(value):
+            if isinstance(value, float):
+                return f"{value:.0f}".strip()
+            if isinstance(value, str):
+                return value.strip()
+            return value
+        df['ean'] = df['ean'].map(format_ean)
+
     for col, field in dest_map.items():
         if 'INTEGER' in field.type:
             df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
