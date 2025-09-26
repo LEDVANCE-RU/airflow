@@ -19,7 +19,7 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     df = df[dest_columns]
 
     if 'ean' in df.columns:
-        df['ean'] = df['ean'].astype('string').str.strip()
+        df['ean'] = df['ean'].str.strip()
     
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
     df.to_csv(export_fp,
