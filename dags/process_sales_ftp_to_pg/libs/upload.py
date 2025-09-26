@@ -1,5 +1,7 @@
 import csv
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from process_sales_ftp_to_pg.libs.constants import SALES_DELETE_SQL, SALES_INSERT_SQL
+from process_sales_ftp_to_pg.libs.mapping import SalesFieldsMap
 
 
 class PgSalesHook:
@@ -13,14 +15,21 @@ class PgSalesHook:
         with conn.cursor() as cur:
             cur.execute("TRUNCATE TABLE sales.sales_raw")
             with open(csv_filepath, 'r', newline='') as f:
-                cur.copy_expert("COPY sales.sales_raw FROM STDIN WITH CSV HEADER", f)
+                cols = SalesFieldsMap.dest_columns()
+                cols_sql = ', '.join(cols)
+                copy_sql = (
+                    f"COPY sales.sales_raw ({cols_sql}) FROM STDIN WITH ("
+                    "FORMAT CSV, DELIMITER ',', NULL '', QUOTE '""', ENCODING 'UTF8', HEADER)"
+                )
+                cur.copy_expert(copy_sql, f)
         conn.commit()
 
     def call_raw_to_ns(self):
         pg = PostgresHook(postgres_conn_id=self.pg_conn_id)
         conn = pg.get_conn()
         with conn.cursor() as cur:
-            cur.execute("CALL sales.sales_raw_to_ns()")
+            cur.execute(SALES_DELETE_SQL)
+            cur.execute(SALES_INSERT_SQL)
         conn.commit()
 
 

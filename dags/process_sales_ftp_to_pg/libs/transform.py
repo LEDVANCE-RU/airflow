@@ -1,6 +1,7 @@
 import re
 import pandas as pd
-
+from process_sales_ftp_to_pg.libs.constants import BU_REPLACEMENTS
+from process_sales_ftp_to_pg.libs.mapping import SalesFieldsMap
 
 QUOTE_CHARS_PATTERN = re.compile(r"[\'\"`«»‘’“”„‹›]")
 
@@ -8,26 +9,29 @@ QUOTE_CHARS_PATTERN = re.compile(r"[\'\"`«»‘’“”„‹›]")
 def transform_sales_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
+    df.rename(columns=SalesFieldsMap.src_map(), inplace=True)
+    dest_columns = SalesFieldsMap.dest_columns()
+    present = df.columns.intersection(dest_columns)
+    df = df[present]
+    for col in dest_columns:
+        if col not in df.columns:
+            df[col] = None
+    df = df[dest_columns]
+
+    if 'ean' in df.columns:
+        df['ean'] = df['ean'].astype('string').str.strip()
+
+    if 'period' in df.columns:
+        df['period'] = pd.to_datetime(df['period'], errors='coerce', dayfirst=True).dt.date.astype('string')
+
     if 'customer_id' in df.columns:
-        df['customer_id'] = df['customer_id'].astype(str).str.replace('00-', '', regex=False)
+        df['customer_id'] = df['customer_id'].astype('string').str.replace('00-', '', regex=False).str.strip()
 
     if 'customer' in df.columns:
-        df['customer'] = (
-            df['customer']
-            .astype(str)
-            .apply(lambda v: QUOTE_CHARS_PATTERN.sub('', v) if v is not None else v)
-        )
+        df['customer'] = df['customer'].astype('string').str.replace(QUOTE_CHARS_PATTERN, '', regex=True)
 
     if 'bu' in df.columns:
-        bu_map = {
-            'L9 - Lamps CC': 'Lamps CC',
-            'L6 - Trad. Lamps': 'TRAD',
-            'L4 - LUM': 'LUM',
-            'L7 - LED Lamps': 'LED',
-            'L8 - CM CS': 'CM CS',
-            'L5 - ECS': 'ECS',
-        }
-        df['bu'] = df['bu'].replace(bu_map)
+        df['bu'] = df['bu'].replace(BU_REPLACEMENTS)
 
     return df
 
