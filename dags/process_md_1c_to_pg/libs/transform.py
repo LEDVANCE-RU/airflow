@@ -8,8 +8,8 @@ import logging
 from process_md_1c_to_pg.libs.mapping import MdFieldsMap
 
 def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_key: str) -> str:
-    ean_src = next((k for k, v in src_map.items() if v == 'ean'), None)
-    df = pd.read_excel(in_fp, dtype={ean_src: 'string'} if ean_src else None)
+    ean_dtype = next(({k: str} for k, v in src_map.items() if v == 'ean'), None)
+    df = pd.read_excel(in_fp, dtype=ean_dtype)
     df.rename(columns=src_map, inplace=True)
     dest_columns = list(dest_map.keys())
     df = df[df.columns.intersection(dest_columns)]
