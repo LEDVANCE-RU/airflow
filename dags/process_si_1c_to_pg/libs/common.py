@@ -14,10 +14,24 @@ def drop_trailing_total(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def read_excel_with_multiindex(in_fp: str, header_spec: Any) -> pd.DataFrame:
+def read_excel_with_multiindex(
+    in_fp: str,
+    header_spec: Any,
+    skiprows: int = 0,
+    dtype: dict | None = None,
+    converters: dict | None = None,
+    **kwargs,
+) -> pd.DataFrame:
     try:
-        # Let pandas/openpyxl infer native types from Excel cells
-        return pd.read_excel(in_fp, header=header_spec, engine='openpyxl')
+        return pd.read_excel(
+            in_fp,
+            header=header_spec,
+            skiprows=skiprows,
+            dtype=dtype,
+            converters=converters,
+            engine='openpyxl',
+            **kwargs,
+        )
     except Exception as e:
         logging.error("Could not read Excel file %s with header=%s: %s", in_fp, header_spec, e)
         raise
