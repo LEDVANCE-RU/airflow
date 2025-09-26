@@ -41,7 +41,7 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     df = df.reindex(columns=dest_columns)
 
     if 'ean' in df.columns:
-        df['ean'] = df['ean'].astype('string').str.strip()
+        df['ean'] = df['ean'].str.strip()
 
     for col, field in dest_map.items():
         if 'INTEGER' in field.type:
