@@ -28,7 +28,7 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     df = read_excel_with_multiindex(
         in_fp,
         header_spec if header_spec is not None else [0, 1, 2, 3],
-        dtype={'ean': 'string'}
+        dtype={'ean': str}
     )
 
     df = drop_trailing_total(df)
