@@ -7,16 +7,17 @@ import re
 def handle(files: dict, out_dp: str, table_to_file: dict):
     if not files.get('MTD_report_AG'):
         return
-    df = pd.read_excel(files['MTD_report_AG'])
-    period_text = str(df.iloc[0, 3])
+    header_df = pd.read_excel(files['MTD_report_AG'], nrows=7)
+    period_text = str(header_df.iloc[0, 3])
     dates = re.findall(r'\d{2}\.\d{2}\.\d{4}', period_text)
     mtd_from, mtd_to = dates[0], dates[1]
+    period = f"{mtd_from} - {mtd_to}"
     period_df = pd.DataFrame({'mtd_period': [period], 'mtd_from': [pd.to_datetime(mtd_from, dayfirst=True)], 'mtd_to': [pd.to_datetime(mtd_to, dayfirst=True)]})
     period_table = 'md.mtd_report_ag_period'
     period_df = align_columns(period_df, period_table)
     table_to_file[period_table] = export_df(period_df, out_dp, 'MTD_report_AG_period', period_table)
 
-    df = df.drop(labels=[0,1,2,3,4,5,6]).dropna(how='all', axis='columns')
+    df = pd.read_excel(files['MTD_report_AG'], skiprows=7).dropna(how='all', axis='columns')
     df.columns = ['ean','ic','open_stock','in_','out_','close_stock']
     df = drop_trailing_total(df)
     df['sku'] = df['ean'].fillna('') + df['ic'].fillna('')
