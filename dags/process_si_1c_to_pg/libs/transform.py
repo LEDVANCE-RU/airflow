@@ -27,8 +27,7 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
 
     df = read_excel_with_multiindex(
         in_fp,
-        header_spec if header_spec is not None else [0, 1, 2, 3],
-        dtype={'ean': str}
+        header_spec if header_spec is not None else [0, 1, 2, 3]
     )
 
     df = drop_trailing_total(df)
@@ -41,7 +40,7 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     df = df.reindex(columns=dest_columns)
 
     if 'ean' in df.columns:
-        df['ean'] = df['ean'].str.strip()
+        df['ean'] = df['ean'].astype('string').str.strip()
 
     for col, field in dest_map.items():
         if 'INTEGER' in field.type:
