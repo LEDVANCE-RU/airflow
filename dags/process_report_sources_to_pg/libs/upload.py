@@ -40,10 +40,6 @@ class PgReportSourcesHook(PostgresHook):
             self._create_table(table_name)
             self._clear_table(table_name)
             columns = TABLE_COLUMNS.get(table_name)
-            if not columns:
-                import pandas as pd
-                df = pd.read_csv(fp)
-                columns = list(df.columns)
             self._import_data(table_name, columns, fp)
 
 

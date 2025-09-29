@@ -1,12 +1,13 @@
-from ..constants import KEY_TO_TABLE
-from ..common import export_df, align_columns, read_drop_last_row
+from process_report_sources_to_pg.libs.constants import KEY_TO_TABLE
+from process_report_sources_to_pg.libs.common import export_df, align_columns, drop_trailing_total
 import pandas as pd
 
 
 def handle(files: dict, out_dp: str, table_to_file: dict):
     if not files.get('PO_report_NEW_AG'):
         return
-    df = read_drop_last_row(files['PO_report_NEW_AG'])
+    df = pd.read_excel(files['PO_report_NEW_AG'])
+    df = drop_trailing_total(df)
     df = df.dropna(how='all', axis='columns')
     df.columns = ['project', 'life_status', 'ean', 'ic', 'description', 'date', 'po_qty']
     df = df.dropna(subset=['date']).drop(columns=['project'])

@@ -20,13 +20,6 @@ def export_df(df: pd.DataFrame, out_dp: str, key: str, table: str) -> str:
     return export_fp
 
 
-def read_drop_last_row(fp: str) -> pd.DataFrame:
-    df = pd.read_excel(fp)
-    if len(df) > 0:
-        df = df.drop(labels=(df.index.stop - 1), axis='index')
-    return df
-
-
 def drop_trailing_total(df: pd.DataFrame) -> pd.DataFrame:
     if len(df) == 0:
         return df

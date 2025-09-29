@@ -1,6 +1,6 @@
 import pandas as pd
-from ..constants import KEY_TO_TABLE
-from ..common import export_df, align_columns
+from process_report_sources_to_pg.libs.constants import KEY_TO_TABLE
+from process_report_sources_to_pg.libs.common import export_df, align_columns
 
 
 def handle(files: dict, out_dp: str, table_to_file: dict):

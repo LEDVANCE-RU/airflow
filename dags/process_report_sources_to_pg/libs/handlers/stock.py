@@ -1,11 +1,13 @@
-from ..constants import KEY_TO_TABLE
-from ..common import export_df, align_columns, read_drop_last_row
+from process_report_sources_to_pg.libs.constants import KEY_TO_TABLE
+from process_report_sources_to_pg.libs.common import export_df, align_columns, drop_trailing_total
+import pandas as pd
 
 
 def handle(files: dict, out_dp: str, table_to_file: dict):
     if not files.get('STOCK_report_AG'):
         return
-    df = read_drop_last_row(files['STOCK_report_AG'])
+    df = pd.read_excel(files['STOCK_report_AG'])
+    df = drop_trailing_total(df)
     df.columns = ['ean', 'description', 'ic', 'uom', 'open_stock_pce', 'open_stock_rub', 'stock_pce', 'stock_rub']
     df = df.dropna(subset=['ean'], how='any', ignore_index=True)
     df['sku'] = df['ean'].fillna('') + df['ic'].fillna('')
