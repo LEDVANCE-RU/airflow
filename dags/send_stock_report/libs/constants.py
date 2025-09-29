@@ -1,11 +1,11 @@
 STOCK_REPORT_SQL = """
 WITH stocks AS (
     SELECT
-      ean,
-      SUM(COALESCE(avail, 0)) AS avail
+      ean::text AS ean,
+      SUM(COALESCE(free_stock, 0)) AS avail
     FROM
       si.stock_for_customer
-    GROUP BY ean
+    GROUP BY 1
   ),
   pl AS (
     SELECT DISTINCT
@@ -23,11 +23,11 @@ WITH stocks AS (
       si.ean_add
   )
   SELECT
-    p.ean::numeric,
-    p.description,
-    ROUND(COALESCE(s.avail, 0))::numeric
+    p.ean AS "EAN",
+    p.description AS "Наименование",
+    ROUND(COALESCE(s.avail, 0))::numeric AS "Доступно"
   FROM
     pl p
     LEFT JOIN stocks s ON (p.ean = s.ean)
-  ORDER BY p.id;
+  ORDER BY p.description ASC;
 """
