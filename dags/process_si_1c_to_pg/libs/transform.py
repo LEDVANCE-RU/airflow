@@ -25,9 +25,21 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
         logging.error(f"Mapping for {file_key} is empty. Cannot transform.")
         raise ValueError(f"Empty mapping for {file_key}")
 
+    header_levels = header_spec if header_spec is not None else [0, 1, 2, 3]
+    header_only = pd.read_excel(in_fp, header=header_levels, engine='openpyxl', nrows=0)
+    ean_idx: list[int] = []
+    for idx, col in enumerate(header_only.columns):
+        parts = list(col) if isinstance(col, tuple) else [col]
+        joined = '.'.join([str(x) for x in parts if pd.notna(x)])
+        if joined.startswith('Артикул') or '.Артикул' in joined:
+            ean_idx.append(idx)
+
+    dtype_map = {i: str for i in ean_idx} if ean_idx else None
+
     df = read_excel_with_multiindex(
         in_fp,
-        header_spec if header_spec is not None else [0, 1, 2, 3]
+        header_levels,
+        dtype=dtype_map
     )
 
     df = drop_trailing_total(df)
@@ -40,7 +52,7 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     df = df.reindex(columns=dest_columns)
 
     if 'ean' in df.columns:
-        df['ean'] = df['ean'].astype('string').str.strip()
+        df['ean'] = df['ean'].str.strip()
 
     for col, field in dest_map.items():
         if 'INTEGER' in field.type:
