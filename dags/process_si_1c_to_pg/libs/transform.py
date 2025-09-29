@@ -28,7 +28,7 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     header_levels = header_spec if header_spec is not None else [0, 1, 2, 3]
     cols = pd.read_excel(in_fp, header=header_levels, engine='openpyxl', nrows=0).columns
     unnested_columns = flatten_columns(cols)
-    dtype_map = ({i: str for i, name in enumerate(flat) if src_map.get(name) == 'ean'} or None)
+    dtype_map = ({i: str for i, name in enumerate(unnested_columns) if src_map.get(name) == 'ean'} or None)
 
     df = read_excel_with_multiindex(
         in_fp,
