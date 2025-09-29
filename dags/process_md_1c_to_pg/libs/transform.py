@@ -9,7 +9,20 @@ from process_md_1c_to_pg.libs.mapping import MdFieldsMap
 
 def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_key: str) -> str:
     ean_dtype = next(({k: str} for k, v in src_map.items() if v == 'ean'), None)
-    df = pd.read_excel(in_fp, dtype=ean_dtype)
+    converters = {}
+    for src_col, dest_name in src_map.items():
+        field = dest_map.get(dest_name)
+        if not field or not isinstance(field.type, str):
+            continue
+        t = field.type.lower()
+        if 'numeric' in t:
+            converters[src_col] = lambda v: pd.to_numeric(str(v).replace(' ', '').replace(',', '.'), errors='coerce')
+        elif 'integer' in t:
+            converters[src_col] = lambda v: (int(float(v)) if pd.notna(pd.to_numeric(v, errors='coerce')) else None)
+        elif 'boolean' in t:
+            converters[src_col] = lambda v: str(v).strip().lower() in {'true', '1', 'да', 'y', 'yes'}
+
+    df = pd.read_excel(in_fp, dtype=ean_dtype, converters=converters or None)
     df.rename(columns=src_map, inplace=True)
     dest_columns = list(dest_map.keys())
     df = df[df.columns.intersection(dest_columns)]
