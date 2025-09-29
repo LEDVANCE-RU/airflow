@@ -26,15 +26,9 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
         raise ValueError(f"Empty mapping for {file_key}")
 
     header_levels = header_spec if header_spec is not None else [0, 1, 2, 3]
-    header_only = pd.read_excel(in_fp, header=header_levels, engine='openpyxl', nrows=0)
-    ean_idx: list[int] = []
-    for idx, col in enumerate(header_only.columns):
-        parts = list(col) if isinstance(col, tuple) else [col]
-        joined = '.'.join([str(x) for x in parts if pd.notna(x)])
-        if joined.startswith('Артикул') or '.Артикул' in joined:
-            ean_idx.append(idx)
-
-    dtype_map = {i: str for i in ean_idx} if ean_idx else None
+    cols = pd.read_excel(in_fp, header=header_levels, engine='openpyxl', nrows=0).columns
+    flat = flatten_columns(cols)
+    dtype_map = ({i: str for i, name in enumerate(flat) if src_map.get(name) == 'ean'} or None)
 
     df = read_excel_with_multiindex(
         in_fp,
