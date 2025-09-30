@@ -8,8 +8,12 @@ import logging
 from process_md_1c_to_pg.libs.mapping import MdFieldsMap
 
 def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_key: str) -> str:
-    ean_dtype = next(({k: str} for k, v in src_map.items() if v == 'ean'), None)
-    df = pd.read_excel(in_fp, dtype=ean_dtype)
+    dtypes = (
+        next(({k: str} for k, v in src_map.items() if v == 'ean'), {}) |
+        next(({k: 'Int64'} for k, v in src_map.items() if v == 'priority'), {}) |
+        next(({k: 'Float64'} for k, v in src_map.items() if v == 'price_federal_wo_vat'), {})
+    )
+    df = pd.read_excel(in_fp, dtype=dtypes or None)
     df.rename(columns=src_map, inplace=True)
     dest_columns = list(dest_map.keys())
     df = df[df.columns.intersection(dest_columns)]
@@ -17,23 +21,11 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
         if col not in df.columns:
             df[col] = None
     df = df[dest_columns]
-    
-    for col, field in dest_map.items():
-        if col not in df.columns or not isinstance(field.type, str):
-            continue
-        t = field.type.lower()
-        if 'numeric' in t:
-            s = df[col].astype(str).str.replace(' ', '', regex=False).str.replace(',', '.', regex=False)
-            df[col] = pd.to_numeric(s, errors='coerce')
-        elif 'integer' in t:
-            s = df[col].astype(str).str.replace(' ', '', regex=False).str.replace(',', '.', regex=False)
-            parsed = pd.to_numeric(s, errors='coerce')
-            df[col] = parsed.apply(lambda x: None if pd.isna(x) else int(float(x)))
-        elif 'boolean' in t:
-            df[col] = df[col].astype(str).str.strip().str.lower().isin({'true', '1', 'да', 'y', 'yes'})
 
     if 'ean' in df.columns:
         df['ean'] = df['ean'].str.strip()
+    if 'deletion_mark' in df.columns:
+        df['deletion_mark'] = df['deletion_mark'].astype('string').str.strip().str.lower().eq('yes').astype('boolean')
     
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
     df.to_csv(export_fp,
