@@ -8,11 +8,12 @@ import logging
 from process_md_1c_to_pg.libs.mapping import MdFieldsMap
 
 def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_key: str) -> str:
-    dtypes = (
-        next(({k: str} for k, v in src_map.items() if v == 'ean'), {}) |
-        next(({k: 'Int64'} for k, v in src_map.items() if v == 'priority'), {}) |
-        next(({k: 'Float64'} for k, v in src_map.items() if v == 'price_federal_wo_vat'), {})
-    )
+    dest_types = {
+        'ean': str,
+        'priority': 'Int64',
+        'price_federal_wo_vat': 'Float64'
+    }
+    dtypes = {k: dest_types[v] for k, v in src_map.items() if v in dest_types}
     df = pd.read_excel(in_fp, dtype=dtypes or None)
     df.rename(columns=src_map, inplace=True)
     dest_columns = list(dest_map.keys())
