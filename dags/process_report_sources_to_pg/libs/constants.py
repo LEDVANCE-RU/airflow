@@ -10,6 +10,18 @@ KEY_TO_TABLE = {
     '1C_packing_AG': 'md.packing_ag',
 }
 
+FILE_DTYPES = {
+    '1C_master_data_AG': {'Артикул': str},
+    'MTD_report_AG': {0: str},
+    'LTM_report_AG': {0: str},
+    'STOCK_report_AG': {'Артикул': str},
+    '1C_IC_AG': str,
+    '1C_EAN_AG': str,
+    'PO_report_NEW_AG': {'Артикул': str},
+    'BO_report_AG': {'Артикул': str},
+    '1C_packing_AG': {'Штрихкод (WA)': str},
+}
+
 PERIOD_TABLES = {
     'MTD_report_AG': 'md.mtd_report_ag_period',
     'LTM_report_AG': 'md.ltm_report_ag_period',

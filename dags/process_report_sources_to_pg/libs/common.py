@@ -34,9 +34,4 @@ def align_columns(df: pd.DataFrame, table: str) -> pd.DataFrame:
     dest_columns = TABLE_COLUMNS.get(table, [])
     if not dest_columns:
         return df
-    present = [c for c in df.columns if c in dest_columns]
-    df = df[present]
-    for col in dest_columns:
-        if col not in df.columns:
-            df[col] = None
-    return df[dest_columns]
+    return df.reindex(columns=dest_columns)
