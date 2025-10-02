@@ -9,15 +9,19 @@ def transform_report_sources(downloaded_files_json: str, out_dp: str) -> str:
 
     table_to_file: dict[str, str] = {}
 
-    md.handle(files, out_dp, table_to_file)
-    mtd.handle(files, out_dp, table_to_file)
-    ltm.handle(files, out_dp, table_to_file)
-    stock.handle(files, out_dp, table_to_file)
-    ic.handle(files, out_dp, table_to_file)
-    ean.handle(files, out_dp, table_to_file)
-    po.handle(files, out_dp, table_to_file)
-    bo.handle(files, out_dp, table_to_file)
-    packing.handle(files, out_dp, table_to_file)
+    handlers = [
+        md.handle,
+        mtd.handle,
+        ltm.handle,
+        stock.handle,
+        ic.handle,
+        ean.handle,
+        po.handle,
+        bo.handle,
+        packing.handle
+    ]
+    for h in handlers:
+        h(files, out_dp, table_to_file)
 
     return json.dumps(table_to_file)
 
