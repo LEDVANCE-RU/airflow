@@ -53,12 +53,12 @@ with DAG(
         df = pd.read_excel(
             local_fp,
             dtype={
-                'Артикул': 'string',
-                'Код клиента': 'string',
-                'Заказ.Number': 'string',
-                'Проект.Number': 'string',
-                'Номер проекта': 'string',
-                'Заказ.Номер проекта': 'string',
+                'Артикул': str,
+                'Код клиента': str,
+                'Заказ.Number': str,
+                'Проект.Number': str,
+                'Номер проекта': str,
+                'Заказ.Номер проекта': str,
             }
         )
         df_transformed = transform_sales_df(df)
