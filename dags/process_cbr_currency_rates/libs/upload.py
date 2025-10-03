@@ -11,7 +11,7 @@ class PgCbrHook(PostgresHook):
     def _create_table(self, table_name: str, dest_map: dict):
         logging.info('Creating table %s if not exists...', table_name)
         sql_cols_str = ',\n'.join([f"{v.name} {v.type}" for v in dest_map.values()])
-        self.run(f"CREATE TABLE IF NOT EXISTS {table_name} ({sql_cols_str});")
+        self.run(f"CREATE TABLE IF NOT EXISTS {table_name} ({sql_cols_str}, UNIQUE (currency, date));")
         logging.info('Table %s ensured to exist.', table_name)
 
     def _upsert_rates(self, table_name: str, import_filepath: str):
@@ -48,16 +48,4 @@ class PgCbrHook(PostgresHook):
             return
         dest_map = CbrFieldsMap.dest_map()
         self._create_table('md.cbr_rates', dest_map)
-        self.run('''
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1
-                    FROM pg_indexes
-                    WHERE schemaname = 'md' AND indexname = 'cbr_rates_currency_date_key'
-                ) THEN
-                    EXECUTE 'CREATE UNIQUE INDEX cbr_rates_currency_date_key ON md.cbr_rates (currency, date)';
-                END IF;
-            END$$;
-        ''')
         self._upsert_rates('md.cbr_rates', fp)

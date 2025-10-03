@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 import xmltodict
 from datetime import datetime
+from process_cbr_currency_rates.libs.mapping import CbrFieldsMap
 
 
 def fetch_cbr_xml_daily() -> dict:
@@ -19,10 +20,11 @@ def fetch_cbr_xml_daily() -> dict:
 def parse_rates(doc: dict, currency_list: set[str]) -> pd.DataFrame:
     all_rates = doc['ValCurs']['Valute']
     date_str = doc['ValCurs']['@Date']
+    columns = CbrFieldsMap.dest_columns()
     out_rows = []
     wanted = set(currency_list)
     if {'RUB', 'RUR'} & wanted:
-        out_rows.append({'currency': 'RUB', 'rate_rub': 1.0, 'date': date_str})
+        out_rows.append({columns[0]: 'RUB', columns[1]: 1.0, columns[2]: date_str})
         wanted.discard('RUB')
         wanted.discard('RUR')
     for rate in all_rates:
@@ -30,11 +32,11 @@ def parse_rates(doc: dict, currency_list: set[str]) -> pd.DataFrame:
         if code in wanted:
             value = float(rate['Value'].replace(',', '.'))
             nominal = float(rate['Nominal'])
-            out_rows.append({'currency': code, 'rate_rub': value / nominal, 'date': date_str})
-    df = pd.DataFrame(out_rows, columns=['currency', 'rate_rub', 'date'])
+            out_rows.append({columns[0]: code, columns[1]: value / nominal, columns[2]: date_str})
+    df = pd.DataFrame(out_rows, columns=columns)
     if not df.empty:
-        df['date'] = pd.to_datetime(df['date'], format='%d.%m.%Y').dt.date
-        df['rate_rub'] = df['rate_rub'].astype('Float64')
+        df[columns[2]] = pd.to_datetime(df[columns[2]], format='%d.%m.%Y').dt.date
+        df[columns[1]] = df[columns[1]].astype('Float64')
     return df
 
 
@@ -49,7 +51,7 @@ def transform_cbr_rates(out_dp: str) -> str:
               sep=',',
               quotechar='"',
               quoting=csv.QUOTE_MINIMAL,
-              columns=['currency', 'rate_rub', 'date'])
+              columns=CbrFieldsMap.dest_columns())
     logging.info(f"Transformed CBR rates to {export_fp}")
     return json.dumps({'cbr_rates': export_fp})
 

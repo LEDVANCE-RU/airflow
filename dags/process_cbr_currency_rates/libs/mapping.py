@@ -16,4 +16,7 @@ class CbrFieldsMap:
             'date': Field('date', 'date'),
         }
 
+    @classmethod
+    def dest_columns(cls) -> list[str]:
+        return list(cls.dest_map().keys())
 
