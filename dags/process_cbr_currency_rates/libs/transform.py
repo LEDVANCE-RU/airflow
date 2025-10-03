@@ -21,7 +21,7 @@ def parse_rates(doc: dict, currency_list: set[str]) -> pd.DataFrame:
     date_str = doc['ValCurs']['@Date']
     out_rows = []
     wanted = set(currency_list)
-    if 'RUB' in wanted or 'RUR' in wanted:
+    if {'RUB', 'RUR'} & wanted:
         out_rows.append({'currency': 'RUB', 'rate_rub': 1.0, 'date': date_str})
         wanted.discard('RUB')
         wanted.discard('RUR')
