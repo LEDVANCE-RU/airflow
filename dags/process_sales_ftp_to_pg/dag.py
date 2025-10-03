@@ -85,27 +85,16 @@ with DAG(
         logging.info("Upload complete.")
 
     @task
-    def save_to_sharepoint_task(local_fp: str):
-        if not local_fp or not os.path.exists(local_fp):
-            logging.warning("Source file not found, skipping SharePoint save.")
+    def save_to_sharepoint_task(transformed_fp: str):
+        if not transformed_fp or not os.path.exists(transformed_fp):
+            logging.warning("Transformed file not found, skipping SharePoint save.")
             return
 
-        df = pd.read_excel(
-            local_fp,
-            dtype={
-                'Артикул': str,
-                'Код клиента': str,
-                'Заказ.Number': str,
-                'Проект.Number': str,
-                'Номер проекта': str,
-                'Заказ.Номер проекта': str,
-            }
-        )
-        df_transformed = transform_sales_df(df)
+        df = pd.read_csv(transformed_fp)
 
         local_dp = get_local_tmp_dir_path()
         temp_excel_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_sales_sp.xlsx")
-        df_transformed.to_excel(temp_excel_fp, index=False, engine='openpyxl')
+        df.to_excel(temp_excel_fp, index=False, engine='openpyxl')
 
         webdav_hook = WebDAVHook('webdav_sharepoint_root')
         webdav_client = webdav_hook.get_conn()
@@ -164,7 +153,7 @@ with DAG(
     downloaded = download_task()
     transformed = transform_task(downloaded)
     uploaded = upload_task(transformed)
-    sp_saved = save_to_sharepoint_task(downloaded)
+    sp_saved = save_to_sharepoint_task(transformed)
     sp_cleanup = cleanup_sharepoint_history_task()
 
     uploaded >> sp_saved >> sp_cleanup >> cleanup_local_files_task(downloaded, transformed)
