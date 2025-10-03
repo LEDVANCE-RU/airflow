@@ -4,7 +4,7 @@ import uuid
 import pandas as pd
 import logging
 
-from .constants import TABLE_COLUMNS
+from process_report_sources_to_pg.libs.constants import TABLE_COLUMNS
 
 
 def export_df(df: pd.DataFrame, out_dp: str, key: str, table: str) -> str:
