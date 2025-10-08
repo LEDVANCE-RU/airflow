@@ -17,7 +17,7 @@ SI_DIR_NAME = 'si_1c'
 with DAG(
     dag_id="process_si_1c_to_pg",
     start_date=datetime(2025, 5, 1, tzinfo=TZ_MSK),
-    schedule='30 8 * * 1-5',
+    schedule='55 4 * * 1-5',
     catchup=False,
     tags=['1c', 'si', 'postgresql'],
 ) as dag:

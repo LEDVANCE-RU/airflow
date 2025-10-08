@@ -5,6 +5,7 @@ import uuid
 import logging
 from dataclasses import dataclass
 from typing import Callable, Any
+import pandas as pd
 
 from process_si_1c_to_pg.libs.mapping import SiFieldsMap
 from process_si_1c_to_pg.libs.common import (
@@ -24,21 +25,33 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
         logging.error(f"Mapping for {file_key} is empty. Cannot transform.")
         raise ValueError(f"Empty mapping for {file_key}")
 
-    df = read_excel_with_multiindex(in_fp, header_spec if header_spec is not None else [0, 1, 2, 3])
+    header_levels = header_spec if header_spec is not None else [0, 1, 2, 3]
+    cols = pd.read_excel(in_fp, header=header_levels, engine='openpyxl', nrows=0).columns
+    unnested_columns = flatten_columns(cols)
+    dtype_map = ({i: str for i, name in enumerate(unnested_columns) if src_map.get(name) == 'ean'} or None)
+
+    df = read_excel_with_multiindex(
+        in_fp,
+        header_levels,
+        dtype=dtype_map
+    )
 
     df = drop_trailing_total(df)
-    df.columns = flatten_columns(df.columns)
+    df.columns = unnested_columns
 
     cleaned_src_map = {str(k).strip(): v for k, v in src_map.items()}
     df.rename(columns=cleaned_src_map, inplace=True)
 
     dest_columns = list(dest_map.keys())
-    df = df[df.columns.intersection(dest_columns)]
+    df = df.reindex(columns=dest_columns)
 
-    for col in dest_columns:
-        if col not in df.columns:
-            df[col] = None
+    if 'ean' in df.columns:
+        df['ean'] = df['ean'].str.strip()
 
+    for col, field in dest_map.items():
+        if 'INTEGER' in field.type:
+            df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
+    
     if df.empty or df[dest_columns].dropna(how='all').empty:
         error_message = f"No data after normalization for {file_key}"
         logging.error(error_message)
