@@ -27,6 +27,7 @@ class SiFieldsMap:
             'Сейчас.Доступно': 'free_stock',
             'Сейчас.Ожидается.В резерве': 'backorder',
             'Сейчас.К обеспечению': 'supply_needed',
+            'Сейчас.Ожидается.Всего.К обеспечению': 'supply_needed',
         }
 
     @classmethod
