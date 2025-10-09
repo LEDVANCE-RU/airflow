@@ -34,7 +34,7 @@ def fetch_and_parse_cbr_rates(currency_list: set[str]) -> pd.DataFrame:
         df = df.rename(columns={'CharCode': CbrFieldsMap.CURRENCY})
         df[CbrFieldsMap.DATE] = date_str
         
-        df = df[[CbrFieldsMap.CURRENCY, CbrFieldsMap.RATE_RUB, CbrFieldsMap.DATE]]
+        df = df[CbrFieldsMap.dest_columns()]
     else:
         df = pd.DataFrame(columns=CbrFieldsMap.dest_columns())
     
