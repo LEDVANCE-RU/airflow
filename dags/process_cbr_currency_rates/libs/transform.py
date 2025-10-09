@@ -20,11 +20,9 @@ def fetch_and_parse_cbr_rates(currency_list: set[str]) -> pd.DataFrame:
     df_rates = pd.read_xml(soup.encode('utf-8'), xpath='.//Valute')
     
     wanted = set(currency_list)
-    has_rub = bool({'RUB', 'RUR'} & wanted)
-    
-    if has_rub:
-        wanted.discard('RUB')
-        wanted.discard('RUR')
+    rub_codes = {'RUB', 'RUR'}
+    has_rub = bool(rub_codes & wanted)
+    wanted = wanted - rub_codes
     
     if not df_rates.empty and wanted:
         df = df_rates[df_rates['CharCode'].isin(wanted)].copy()
