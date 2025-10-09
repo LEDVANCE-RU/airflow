@@ -5,45 +5,60 @@ import uuid
 import logging
 import pandas as pd
 import requests
-import xmltodict
-from datetime import datetime
+from io import BytesIO
 from process_cbr_currency_rates.libs.mapping import CbrFieldsMap
 
 
-def fetch_cbr_xml_daily() -> dict:
+def fetch_and_parse_cbr_rates(currency_list: set[str]) -> pd.DataFrame:
     url = 'http://www.cbr.ru/scripts/XML_daily.asp'
     response = requests.get(url, timeout=60)
     response.raise_for_status()
-    return xmltodict.parse(response.content)
-
-
-def parse_rates(doc: dict, currency_list: set[str]) -> pd.DataFrame:
-    all_rates = doc['ValCurs']['Valute']
-    date_str = doc['ValCurs']['@Date']
+    
+    xml_text = response.content.decode('windows-1251')
+    xml_content = BytesIO(xml_text.encode('utf-8'))
+    
+    root_df = pd.read_xml(xml_content, xpath='.', attrs_only=True)
+    date_str = root_df['Date'].iloc[0] if 'Date' in root_df.columns else None
+    
+    xml_content = BytesIO(xml_text.encode('utf-8'))
+    df_rates = pd.read_xml(xml_content, xpath='.//Valute')
+    
     columns = CbrFieldsMap.dest_columns()
-    out_rows = []
     wanted = set(currency_list)
+    
+    result_data = []
+    
     if {'RUB', 'RUR'} & wanted:
-        out_rows.append({columns[0]: 'RUB', columns[1]: 1.0, columns[2]: date_str})
+        result_data.append({columns[0]: 'RUB', columns[1]: 1.0, columns[2]: date_str})
         wanted.discard('RUB')
         wanted.discard('RUR')
-    for rate in all_rates:
-        code = rate['CharCode']
-        if code in wanted:
-            value = float(rate['Value'].replace(',', '.'))
-            nominal = float(rate['Nominal'])
-            out_rows.append({columns[0]: code, columns[1]: value / nominal, columns[2]: date_str})
-    df = pd.DataFrame(out_rows, columns=columns)
+    
+    if not df_rates.empty and wanted:
+        df_filtered = df_rates[df_rates['CharCode'].isin(wanted)].copy()
+        
+        df_filtered['Value'] = df_filtered['Value'].astype(str).str.replace(',', '.').astype(float)
+        df_filtered['Nominal'] = df_filtered['Nominal'].astype(float)
+        df_filtered['rate_rub'] = df_filtered['Value'] / df_filtered['Nominal']
+        
+        df_filtered = df_filtered.rename(columns={
+            'CharCode': columns[0],
+            'rate_rub': columns[1]
+        })
+        df_filtered[columns[2]] = date_str
+        
+        result_data.extend(df_filtered[[columns[0], columns[1], columns[2]]].to_dict('records'))
+    
+    df = pd.DataFrame(result_data, columns=columns)
     if not df.empty:
         df[columns[2]] = pd.to_datetime(df[columns[2]], format='%d.%m.%Y').dt.date
         df[columns[1]] = df[columns[1]].astype('Float64')
+    
     return df
 
 
 def transform_cbr_rates(out_dp: str) -> str:
     os.makedirs(out_dp, exist_ok=True)
-    doc = fetch_cbr_xml_daily()
-    df = parse_rates(doc, {'EUR', 'USD', 'CNY', 'RUB'})
+    df = fetch_and_parse_cbr_rates({'EUR', 'USD', 'CNY', 'RUB'})
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_cbr_rates.csv")
     df.to_csv(export_fp,
               index=False,
