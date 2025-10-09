@@ -37,7 +37,7 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     )
 
     df = drop_trailing_total(df)
-    df.columns = flatten_columns(df.columns)
+    df.columns = unnested_columns
 
     cleaned_src_map = {str(k).strip(): v for k, v in src_map.items()}
     df.rename(columns=cleaned_src_map, inplace=True)

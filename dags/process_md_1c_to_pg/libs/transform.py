@@ -8,18 +8,22 @@ import logging
 from process_md_1c_to_pg.libs.mapping import MdFieldsMap
 
 def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_key: str) -> str:
-    ean_dtype = next(({k: str} for k, v in src_map.items() if v == 'ean'), None)
-    df = pd.read_excel(in_fp, dtype=ean_dtype)
+    dest_types = {
+        'ean': str,
+        'deletion_mark': str,
+        'priority': 'Int64',
+        'price_federal_wo_vat': 'Float64',
+    }
+    dtypes = {k: dest_types[v] for k, v in src_map.items() if v in dest_types}
+    df = pd.read_excel(in_fp, dtype=dtypes or None)
     df.rename(columns=src_map, inplace=True)
     dest_columns = list(dest_map.keys())
-    df = df[df.columns.intersection(dest_columns)]
-    for col in dest_columns:
-        if col not in df.columns:
-            df[col] = None
-    df = df[dest_columns]
+    df = df.reindex(columns=dest_columns)
 
     if 'ean' in df.columns:
         df['ean'] = df['ean'].str.strip()
+    if 'deletion_mark' in df.columns:
+        df['deletion_mark'] = df['deletion_mark'].str.strip().str.lower().eq('yes').astype('boolean')
     
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
     df.to_csv(export_fp,

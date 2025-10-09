@@ -20,8 +20,11 @@ def transform(in_fp: str, out_dp: str):
                            dtype={k: v.type for k, v in src_map.items()})
     df.rename(columns={k: v.name for k, v in src_map.items()},
               inplace=True)
+    for f in [fmap.ic, fmap.article, fmap.description, fmap.ean, fmap.lifecycle]:
+        df[f] = df[f].str.strip()
 
     df = df[df[fmap.level].isin(fmap.allowed_levels())]
+    df[fmap.lifecycle] = df[fmap.lifecycle].str.split(' - ').str[0].str.strip()
 
     unique_key = [fmap.ic, fmap.level]
     df_duplicates = df[df.duplicated(unique_key, keep=False)]
@@ -38,6 +41,7 @@ def transform(in_fp: str, out_dp: str):
             index=[fmap.code,
                    fmap.article,
                    fmap.ic,
+                   fmap.lifecycle,
                    fmap.description],
             columns=fmap.level,
             values=[fmap.qty, fmap.ean])
@@ -48,10 +52,11 @@ def transform(in_fp: str, out_dp: str):
 
     # forcibly add columns from mapping for case when levels are missing in source dataframe
     df = df.reindex(columns=list(dest_map.keys()))
-    d = {
-        **{(str(c[0]), c[1]): 'float64' for c in df.columns if c[0] == fmap.enum},
-        **{(str(c[0]), c[1]): 'string' for c in df.columns if c[0] == fmap.ean}
+    dtypes = {
+        fmap.enum: 'float64',
+        fmap.ean: 'string'
     }
+    d = {(str(c[0]), c[1]): dtypes[c[0]] for c in df.columns if c[0] in dtypes}
     df = df.astype(d)
     df.rename(columns={k: v.name for k, v in dest_map.items()}, inplace=True)
 
