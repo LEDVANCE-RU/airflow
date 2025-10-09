@@ -17,8 +17,7 @@ def fetch_and_parse_cbr_rates(currency_list: set[str]) -> pd.DataFrame:
     soup = bs4.BeautifulSoup(response.content, 'xml')
     date_str = soup.find('ValCurs').get('Date')
     
-    xml_content = BytesIO(xml_text.encode('utf-8'))
-    df_rates = pd.read_xml(xml_content, xpath='.//Valute')
+    df_rates = pd.read_xml(soup.encode('utf-8'), xpath='.//Valute')
     
     columns = CbrFieldsMap.dest_columns()
     wanted = set(currency_list)
