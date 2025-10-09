@@ -66,23 +66,33 @@ with DAG(
         df_transformed = transform_sales_df(df)
 
         local_dp = get_local_tmp_dir_path()
-        out_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_sales_transformed.csv")
-        df_transformed.to_csv(out_fp,
-                              index=False,
-                              encoding='utf-8',
-                              sep=',',
-                              quotechar='"',
-                              quoting=csv.QUOTE_MINIMAL,
-                              columns=SalesFieldsMap.dest_columns())
+        out_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_sales_transformed.parquet")
+        df_transformed[SalesFieldsMap.dest_columns()].to_parquet(out_fp, index=False, engine='pyarrow')
         logging.info("Transformed file saved to %s", out_fp)
         return out_fp
 
     @task
     def upload_task(transformed_fp: str):
-        pg_hook = PgSalesHook(pg_conn_id='pg_prod')
-        pg_hook.truncate_and_copy(transformed_fp)
-        pg_hook.call_raw_to_ns()
-        logging.info("Upload complete.")
+        df = pd.read_parquet(transformed_fp)
+        
+        local_dp = get_local_tmp_dir_path()
+        temp_csv_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_sales_for_pg.csv")
+        df.to_csv(temp_csv_fp,
+                  index=False,
+                  encoding='utf-8',
+                  sep=',',
+                  quotechar='"',
+                  quoting=csv.QUOTE_MINIMAL,
+                  columns=SalesFieldsMap.dest_columns())
+        
+        try:
+            pg_hook = PgSalesHook(pg_conn_id='pg_prod')
+            pg_hook.truncate_and_copy(temp_csv_fp)
+            pg_hook.call_raw_to_ns()
+            logging.info("Upload complete.")
+        finally:
+            if os.path.exists(temp_csv_fp):
+                os.remove(temp_csv_fp)
 
     @task
     def save_to_sharepoint_task(transformed_fp: str):
@@ -90,7 +100,7 @@ with DAG(
             logging.warning("Transformed file not found, skipping SharePoint save.")
             return
 
-        df = pd.read_csv(transformed_fp)
+        df = pd.read_parquet(transformed_fp)
 
         local_dp = get_local_tmp_dir_path()
         temp_excel_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_sales_sp.xlsx")
