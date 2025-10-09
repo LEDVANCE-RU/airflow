@@ -14,11 +14,8 @@ def fetch_and_parse_cbr_rates(currency_list: set[str]) -> pd.DataFrame:
     response = requests.get(url, timeout=60)
     response.raise_for_status()
     
-    xml_text = response.content.decode('windows-1251')
-    xml_content = BytesIO(xml_text.encode('utf-8'))
-    
-    root_df = pd.read_xml(xml_content, xpath='.', attrs_only=True)
-    date_str = root_df['Date'].iloc[0] if 'Date' in root_df.columns else None
+    soup = bs4.BeautifulSoup(response.content, 'xml')
+    date_str = soup.find('ValCurs').get('Date')
     
     xml_content = BytesIO(xml_text.encode('utf-8'))
     df_rates = pd.read_xml(xml_content, xpath='.//Valute')
