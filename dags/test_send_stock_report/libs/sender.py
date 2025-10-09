@@ -58,7 +58,8 @@ def send_report_by_email(report_df: pd.DataFrame, recipients: dict, tmp_dir: str
     smtp_conn = smtp_hook.get_conn()
     
     all_recipients = to + cc + bcc
-    smtp_conn.sendmail(msg['From'], all_recipients, msg.as_string())
-    smtp_conn.quit()
+    smtp_client = smtp_conn.smtp_client
+    smtp_client.sendmail(msg['From'], all_recipients, msg.as_string())
+    smtp_client.quit()
     
     logging.info("Email sent to: to=%s cc=%s bcc=%s", to, cc, bcc)
