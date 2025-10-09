@@ -69,3 +69,4 @@ def transform_cbr_rates(out_dp: str) -> str:
     logging.info(f"Transformed CBR rates to {export_fp}")
     return json.dumps({'cbr_rates': export_fp})
 
+
