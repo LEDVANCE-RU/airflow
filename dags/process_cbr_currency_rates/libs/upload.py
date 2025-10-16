@@ -15,7 +15,8 @@ class PgCbrHook(PostgresHook):
         logging.info('Table %s ensured to exist.', table_name)
 
     def _upsert_rates(self, table_name: str, import_filepath: str):
-        tmp_table = f"{table_name}_tmp"
+        base_table_name = table_name.split('.')[-1]
+        tmp_table = f"{base_table_name}_tmp"
         dest_map = CbrFieldsMap.dest_map()
         cols = [v.name for v in dest_map.values()]
         self.run(f"DROP TABLE IF EXISTS {tmp_table};")
