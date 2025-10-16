@@ -25,14 +25,19 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
         logging.error(f"Mapping for {file_key} is empty. Cannot transform.")
         raise ValueError(f"Empty mapping for {file_key}")
 
+    header_levels = header_spec if header_spec is not None else [0, 1, 2, 3]
+    cols = pd.read_excel(in_fp, header=header_levels, engine='openpyxl', nrows=0).columns
+    unnested_columns = flatten_columns(cols)
+    dtype_map = {i: str for i, name in enumerate(unnested_columns) if src_map.get(name) == 'ean'}
+
     df = read_excel_with_multiindex(
         in_fp,
-        header_spec if header_spec is not None else [0, 1, 2, 3],
-        dtype={'ean': str}
+        header_levels,
+        dtype=dtype_map
     )
 
     df = drop_trailing_total(df)
-    df.columns = flatten_columns(df.columns)
+    df.columns = unnested_columns
 
     cleaned_src_map = {str(k).strip(): v for k, v in src_map.items()}
     df.rename(columns=cleaned_src_map, inplace=True)

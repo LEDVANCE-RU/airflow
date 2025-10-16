@@ -1,7 +1,7 @@
 STOCK_REPORT_SQL = """
 WITH stocks AS (
     SELECT
-      ean::text AS ean,
+      btrim(ean::text) AS ean,
       SUM(COALESCE(free_stock, 0)) AS avail
     FROM
       si.stock_for_customer
