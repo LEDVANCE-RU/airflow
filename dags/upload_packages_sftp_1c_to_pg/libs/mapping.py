@@ -22,6 +22,7 @@ class PackageFieldsMap:
     article = 'article'
     description = 'description'
     ic = 'ic'
+    lifecycle = 'lifecycle'
     ean = 'ean'
     level = 'level'
     enum = 'enumerator'
@@ -38,7 +39,8 @@ class PackageFieldsMap:
             'Номенклатура.Код': Field(cls.code, 'string'),
             'Номенклатура.Артикул': Field(cls.article, 'string'),
             'Номенклатура.Description': Field(cls.description, 'string'),
-            'Характеристика (WA)': Field(cls.ic, 'string'),
+            'Характеристика (WA).Description': Field(cls.ic, 'string'),
+            'Характеристика (WA).(WA) Статус жизненного цикла': Field(cls.lifecycle, 'string'),
             'Штрихкод (WA)': Field(cls.ean, 'string'),
             'Уровень упаковки (WA)': Field(cls.level, 'string'),
             'Числитель': Field(cls.enum, 'float64'),
@@ -51,7 +53,8 @@ class PackageFieldsMap:
             cls.code: Field('code', 'varchar'),
             cls.article: Field('article', 'varchar'),
             cls.description: Field('description', 'varchar'),
-            cls.ic: Field('ic', 'varchar')
+            cls.ic: Field('ic', 'varchar'),
+            cls.lifecycle: Field('lifecycle', 'varchar')
         }
         for lvl in cls.allowed_levels():
             col_name = lvl.lower()
