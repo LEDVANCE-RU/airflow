@@ -61,6 +61,7 @@ class SiFieldsMap:
             'Заказ на поступление': 'purchase_order',
             'Номенклатура.Description': 'description',
             'Заказ на поступление.Номер': 'po_id',
+            'Заказ на поступление.Number': 'po_id',
             'Заказ на поступление.Контрагент': 'supplier',
             'Заказ на отгрузку.Давалец': 'customer',
             'Заказ на отгрузку.Number': 'order_id',
