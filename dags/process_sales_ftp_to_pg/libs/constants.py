@@ -7,8 +7,6 @@ BU_REPLACEMENTS = {
     'L5 - ECS': 'ECS',
 }
 
-SALES_EXPORT_SP_DIR = 'SharedDocuments/07. IT/Data_reports/SalesExport_14DayRolling'
-
 SALES_DELETE_SQL = '''
 delete from sales.since_2024 ss where ss.period in (select distinct period from sales.sales_raw);
 '''
