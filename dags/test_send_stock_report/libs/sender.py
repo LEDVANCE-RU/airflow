@@ -35,9 +35,12 @@ def send_report_by_email(report_df: pd.DataFrame, recipients: dict, tmp_dir: str
     cc = recipients.get('cc') or []
     bcc = recipients.get('bcc') or []
 
+    smtp_hook = SmtpHook('smtp_sys_tech')
+    smtp_conn = smtp_hook.get_conn()
+
     msg = MIMEMultipart()
     msg['Subject'] = 'АО "ЛЕДВАНС": Остатки на складе на текущую дату'
-    msg['From'] = 'smtp_sys_tech'
+    msg['From'] = smtp_conn.from_email
     msg['To'] = ', '.join(to) if isinstance(to, list) else to
     if cc:
         msg['Cc'] = ', '.join(cc) if isinstance(cc, list) else cc
@@ -53,9 +56,6 @@ def send_report_by_email(report_df: pd.DataFrame, recipients: dict, tmp_dir: str
         attachment = MIMEApplication(f.read(), _subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         attachment.add_header('Content-Disposition', 'attachment', filename=filename)
         msg.attach(attachment)
-
-    smtp_hook = SmtpHook('smtp_sys_tech')
-    smtp_conn = smtp_hook.get_conn()
     
     all_recipients = to + cc + bcc
     smtp_client = smtp_conn.smtp_client
