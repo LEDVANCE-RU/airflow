@@ -19,27 +19,32 @@ class PgCbrHook(PostgresHook):
         tmp_table = f"{base_table_name}_tmp"
         dest_map = CbrFieldsMap.dest_map()
         cols = [v.name for v in dest_map.values()]
-        self.run(f"DROP TABLE IF EXISTS {tmp_table};")
-        self.run(f"CREATE TEMP TABLE {tmp_table} (LIKE {table_name} INCLUDING ALL);")
-        copy_sql = f"""
-            COPY {tmp_table} ({', '.join(cols)}) FROM STDIN
-            WITH (
-                FORMAT CSV,
-                DELIMITER ',',
-                NULL '',
-                QUOTE '"',
-                ENCODING 'UTF8',
-                HEADER
-            );
-        """
-        self.copy_expert(copy_sql, import_filepath)
-        merge_sql = f"""
-            INSERT INTO {table_name} ({', '.join(cols)})
-            SELECT {', '.join(cols)} FROM {tmp_table}
-            ON CONFLICT (currency, date)
-            DO UPDATE SET rate_rub = EXCLUDED.rate_rub;
-        """
-        self.run(merge_sql)
+
+        with self.get_conn() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(f"DROP TABLE IF EXISTS {tmp_table};")
+                cursor.execute(f"CREATE TEMP TABLE {tmp_table} (LIKE {table_name} INCLUDING ALL);")
+                copy_sql = f"""
+                    COPY {tmp_table} ({', '.join(cols)}) FROM STDIN
+                    WITH (
+                        FORMAT CSV,
+                        DELIMITER ',',
+                        NULL '',
+                        QUOTE '"',
+                        ENCODING 'UTF8',
+                        HEADER
+                    );
+                """
+                with open(import_filepath, 'r', encoding='utf-8') as f:
+                    cursor.copy_expert(copy_sql, f)
+                merge_sql = f"""
+                    INSERT INTO {table_name} ({', '.join(cols)})
+                    SELECT {', '.join(cols)} FROM {tmp_table}
+                    ON CONFLICT (currency, date)
+                    DO UPDATE SET rate_rub = EXCLUDED.rate_rub;
+                """
+                cursor.execute(merge_sql)
+
 
     def upload_rates(self, transformed_data_json: str):
         transformed = json.loads(transformed_data_json)
