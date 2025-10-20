@@ -16,3 +16,7 @@ class IcLifecycleStatus(StrEnum):
             cls.REG,
             cls.EOL
         ]
+
+    @classmethod
+    def inactive_statuses(cls):
+        return [cls.ARC]

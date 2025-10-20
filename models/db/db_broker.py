@@ -7,7 +7,8 @@ import sqlalchemy.dialects.postgresql as sa_pg
 from sqlalchemy.orm import aliased as sa_aliased
 import sqlalchemy.sql as sa_sql
 
-from models.db import SessionLocal
+from models.db.main import SessionLocal
+from models.db.mapping import QuerySiblingIcMap
 from models.main.model import ZeroedStockHistory
 from models.onec_extract.constants import WAREHOUSE_OF_GOODS_UUID
 from models.onec_extract.model import WmsStockHistory, Nomenclature, Ic, FutureArrivalsStock
@@ -154,25 +155,48 @@ class DbBroker(metaclass=AutoRollbackMeta):
         stmt = sa.select(sa.func.max(ZeroedStockHistory.zeroed_before))
         return self.session.execute(stmt).scalar()
 
-    def get_zeroed_stock_history(self, zeroed_before: datetime) -> list[ZeroedStockHistory]:
-        stmt = sa.select(ZeroedStockHistory).filter(ZeroedStockHistory.zeroed_before == zeroed_before)
+    def get_zeroed_stock_history(self, zeroed_before: datetime, with_receipts: bool = True)\
+            -> list[ZeroedStockHistory]:
+        stmt = (
+            sa.select(ZeroedStockHistory)
+            .filter(
+                sa.and_(
+                    ZeroedStockHistory.zeroed_before == zeroed_before,
+                    True if with_receipts else ZeroedStockHistory.receipt_in_progress_qty == 0
+                )
+            )
+        )
         return self.session.execute(stmt).scalars().all()
 
-    def get_child_ics(self, nomenclature_uuids: list[sa_pg.UUID] = None, lifecycle_statuses: list[str] = None,
-                      *, return_stmt: bool = False) -> list[sa.engine.Row] | sa_sql.Select:
+    def get_sibling_ics(self, ic_uuids: list[sa_pg.UUID], lifecycle_statuses: list[str] = None,
+                        *, return_stmt: bool = False):
+        IcSibling = sa_aliased(Ic)  #type: Ic
         stmt = (
             sa.select(
-                Nomenclature.uuid,
-                Nomenclature.article,
-                Ic.uuid,
-                Ic.name,
-                Ic.lifecycle_status
+                Ic.uuid.label(QuerySiblingIcMap.IC_UUID),
+                Ic.name.label(QuerySiblingIcMap.IC),
+                Ic.lifecycle_status.label(QuerySiblingIcMap.IC_LIFECYCLE_STATUS),
+                Nomenclature.uuid.label(QuerySiblingIcMap.NOMENCLATURE_UUID),
+                Nomenclature.article.label(QuerySiblingIcMap.ARTICLE),
+                IcSibling.uuid.label(QuerySiblingIcMap.SIBLING_IC_UUID),
+                IcSibling.name.label(QuerySiblingIcMap.SIBLING_IC),
+                IcSibling.lifecycle_status.label(QuerySiblingIcMap.SIBLING_IC_LIFECYCLE_STATUS)
+            ).join(
+                Nomenclature,
+                Nomenclature.uuid == Ic.nomenclature_uuid
             ).outerjoin(
-                Ic,
-                Ic.nomenclature_uuid == Nomenclature.uuid
+                IcSibling,
+                sa.and_(
+                    IcSibling.nomenclature_uuid == Nomenclature.uuid,
+                    IcSibling.uuid != Ic.uuid
+                )
             ).filter(
-                True if nomenclature_uuids is None else Ic.nomenclature_uuid.in_(nomenclature_uuids),
-                True if lifecycle_statuses is None else Ic.lifecycle_status.in_(lifecycle_statuses)
+                Ic.uuid.in_(ic_uuids),
+                True if lifecycle_statuses is None else
+                    sa.or_(
+                        IcSibling.lifecycle_status.in_(lifecycle_statuses),
+                        IcSibling.lifecycle_status.is_(None) if None in lifecycle_statuses else False
+                    )
             )
         )
         return stmt if return_stmt else self.session.execute(stmt).all()

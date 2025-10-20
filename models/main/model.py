@@ -1,7 +1,9 @@
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
 
-from models.db import MAIN_SCHEMA, Base, NullableUUID
+from models.db.constants import MAIN_SCHEMA
+from models.db.main import Base
+from models.db.types import NullableUUID
 
 
 class AbstractBaseModel(Base):
