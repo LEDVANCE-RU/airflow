@@ -19,7 +19,7 @@ class PgSalesHook:
                 cols_sql = ', '.join(cols)
                 copy_sql = (
                     f"COPY sales.sales_raw ({cols_sql}) FROM STDIN WITH ("
-                    "FORMAT CSV, DELIMITER ',', NULL '', QUOTE '""', ENCODING 'UTF8', HEADER)"
+                    "FORMAT CSV, DELIMITER ',', NULL '', QUOTE '\"', ENCODING 'UTF8', HEADER)"
                 )
                 cur.copy_expert(copy_sql, f)
         conn.commit()

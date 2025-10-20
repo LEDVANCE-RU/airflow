@@ -10,8 +10,12 @@ def handle(files: dict, out_dp: str, table_to_file: dict):
     df = drop_trailing_total(df)
     df = df.dropna(how='all', axis='columns')
     df.columns = ['project', 'life_status', 'ean', 'ic', 'description', 'date', 'po_qty']
+    s = df['date'].astype(str).str.replace('/', '-', regex=False).str.strip()
+    d1 = pd.to_datetime(s, errors='coerce', dayfirst=True)
+    d2 = pd.to_datetime(s, format='%d-%m-%y %H:%M:%S', errors='coerce')
+    d3 = pd.to_datetime(s, format='%d-%m-%y', errors='coerce')
+    df['date'] = d1.fillna(d2).fillna(d3)
     df = df.dropna(subset=['date']).drop(columns=['project'])
-    df['date'] = pd.to_datetime(df['date'].astype(str).str.replace('/', '.'), dayfirst=True)
     df['ean'] = df['ean'].str.strip()
     df['sku'] = df['ean'].fillna('') + df['ic'].fillna('')
     df['article'] = df['ean'] + ' - ' + df['ic'].fillna('') + ' - ' + df['description']
