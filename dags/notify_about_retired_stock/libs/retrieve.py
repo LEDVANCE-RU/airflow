@@ -1,6 +1,7 @@
 import pandas
 
 from db_model.db_broker import DbBroker
+from db_model.mapping import QuerySiblingIcMap
 from db_model.onec_extract.constants import IcLifecycleStatus
 
 
@@ -23,4 +24,9 @@ def get_zeroed_stock_with_siblings() -> pandas.DataFrame:
             return_stmt=True
         )
         df = pandas.read_sql(result_sibling_ics, db_broker.session.connection())
+        df = df[[QuerySiblingIcMap.IC,
+                 QuerySiblingIcMap.IC_LIFECYCLE_STATUS,
+                 QuerySiblingIcMap.ARTICLE,
+                 QuerySiblingIcMap.SIBLING_IC,
+                 QuerySiblingIcMap.SIBLING_IC_LIFECYCLE_STATUS]]
     return df
