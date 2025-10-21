@@ -1,0 +1,57 @@
+import logging
+import json
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from process_cbr_currency_rates.libs.mapping import CbrFieldsMap
+
+
+class PgCbrHook(PostgresHook):
+    def __init__(self, pg_conn_id: str, *args, **kwargs):
+        super().__init__(pg_conn_id, *args, **kwargs)
+
+    def _create_table(self, table_name: str, dest_map: dict):
+        logging.info('Creating table %s if not exists...', table_name)
+        sql_cols_str = ',\n'.join([f"{v.name} {v.type}" for v in dest_map.values()])
+        self.run(f"CREATE TABLE IF NOT EXISTS {table_name} ({sql_cols_str}, UNIQUE (currency, date));")
+        logging.info('Table %s ensured to exist.', table_name)
+
+    def _upsert_rates(self, table_name: str, import_filepath: str):
+        base_table_name = table_name.split('.')[-1]
+        tmp_table = f"{base_table_name}_tmp"
+        dest_map = CbrFieldsMap.dest_map()
+        cols = [v.name for v in dest_map.values()]
+
+        with self.get_conn() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(f"DROP TABLE IF EXISTS {tmp_table};")
+                cursor.execute(f"CREATE TEMP TABLE {tmp_table} (LIKE {table_name} INCLUDING ALL);")
+                copy_sql = f"""
+                    COPY {tmp_table} ({', '.join(cols)}) FROM STDIN
+                    WITH (
+                        FORMAT CSV,
+                        DELIMITER ',',
+                        NULL '',
+                        QUOTE '"',
+                        ENCODING 'UTF8',
+                        HEADER
+                    );
+                """
+                with open(import_filepath, 'r', encoding='utf-8') as f:
+                    cursor.copy_expert(copy_sql, f)
+                merge_sql = f"""
+                    INSERT INTO {table_name} ({', '.join(cols)})
+                    SELECT {', '.join(cols)} FROM {tmp_table}
+                    ON CONFLICT (currency, date)
+                    DO UPDATE SET rate_rub = EXCLUDED.rate_rub;
+                """
+                cursor.execute(merge_sql)
+
+
+    def upload_rates(self, transformed_data_json: str):
+        transformed = json.loads(transformed_data_json)
+        fp = transformed.get('cbr_rates')
+        if not fp:
+            logging.info('Nothing to upload for CBR rates.')
+            return
+        dest_map = CbrFieldsMap.dest_map()
+        self._create_table('md.cbr_rates', dest_map)
+        self._upsert_rates('md.cbr_rates', fp)
