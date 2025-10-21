@@ -23,5 +23,6 @@ def transform(df_fp: str, out_fp: str):
                   QuerySiblingIcMap.IC_LIFECYCLE_STATUS,
                   QuerySiblingIcMap.ARTICLE],
                  inplace=True)
-    df.rename(OUT_FIELD_MAP, inplace=True)
+    df.index.rename(OUT_FIELD_MAP, inplace=True)
+    df.rename(columns=OUT_FIELD_MAP, inplace=True)
     df.to_excel(out_fp, merge_cells=True)

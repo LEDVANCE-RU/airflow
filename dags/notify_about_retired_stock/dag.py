@@ -20,14 +20,22 @@ with DAG(
     catchup=False,
 ) as dag:
     @task
-    def retrieve_task() -> str:
+    def retrieve_task() -> str | None:
         from notify_about_retired_stock.libs.retrieve import get_zeroed_stock_with_siblings
 
         df = get_zeroed_stock_with_siblings()
+        if df.empty:
+            logging.info('Обнуление стоков не обнаружено.')
+            return None
         local_dp = get_tmp_local_dir_path()
         local_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}.parquet")
+        os.makedirs(local_dp, exist_ok=True)
         df.to_parquet(local_fp)
         return local_fp
+
+    @task.short_circuit
+    def check_retired_stock_found_task(df_fp: str | None) -> bool:
+        return df_fp is not None
 
     @task
     def transform_task(df_fp: str) -> str:
@@ -53,7 +61,9 @@ with DAG(
                 logging.info("File %s removed.", fp)
 
     df_fp = retrieve_task()
+    is_retired_stock_found = check_retired_stock_found_task(df_fp)
     out_fp = transform_task(df_fp)
     notified = notify_task(out_fp)
 
+    df_fp >> is_retired_stock_found >> [out_fp, notified]
     (df_fp, out_fp, notified) >> cleanup_task([df_fp, out_fp])
