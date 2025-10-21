@@ -21,7 +21,7 @@ with DAG(
 ) as dag:
     @task
     def retrieve_task() -> str:
-        from dags.notify_about_retired_stock.libs.retrieve import get_zeroed_stock_with_siblings
+        from notify_about_retired_stock.libs.retrieve import get_zeroed_stock_with_siblings
 
         df = get_zeroed_stock_with_siblings()
         local_dp = get_tmp_local_dir_path()
@@ -31,7 +31,7 @@ with DAG(
 
     @task
     def transform_task(df_fp: str) -> str:
-        from dags.notify_about_retired_stock.libs.transform import transform
+        from notify_about_retired_stock.libs.transform import transform
 
         out_dp = get_tmp_local_dir_path()
         out_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}.xlsx")
@@ -40,7 +40,7 @@ with DAG(
 
     @task
     def notify_task(out_fp: str):
-        from dags.notify_about_retired_stock.libs.send import send_by_email
+        from notify_about_retired_stock.libs.send import send_by_email
 
         dt_str = datetime.now(tz=TZ_MSK).strftime('%Y%m%d_%H%M%S')
         send_by_email(out_fp, f'Обнуление_остатков_{dt_str}.xlsx')

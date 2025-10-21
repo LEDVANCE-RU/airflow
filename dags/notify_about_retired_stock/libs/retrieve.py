@@ -1,7 +1,7 @@
 import pandas
 
-from models.db.db_broker import DbBroker
-from models.onec_extract.constants import IcLifecycleStatus
+from db_model.db_broker import DbBroker
+from db_model.onec_extract.constants import IcLifecycleStatus
 
 
 def get_zeroed_stock_with_siblings() -> pandas.DataFrame:
