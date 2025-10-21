@@ -1,6 +1,6 @@
 import pandas
 
-from models.db.mapping import QuerySiblingIcMap
+from db_model.mapping import QuerySiblingIcMap
 
 
 OUT_FIELD_MAP = {

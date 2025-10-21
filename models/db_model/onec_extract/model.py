@@ -3,9 +3,9 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
 
-from models.db.constants import ONEC_EXTRACT_SCHEMA
-from models.db.main import Base
-from models.db.types import NullableUUID, NullableUUIDString
+from db_model.constants import ONEC_EXTRACT_SCHEMA
+from db_model.main import Base
+from db_model.types import NullableUUID, NullableUUIDString
 
 
 class AbstractBaseModel(Base):

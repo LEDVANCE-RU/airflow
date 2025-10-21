@@ -7,11 +7,11 @@ import sqlalchemy.dialects.postgresql as sa_pg
 from sqlalchemy.orm import aliased as sa_aliased
 import sqlalchemy.sql as sa_sql
 
-from models.db.main import SessionLocal
-from models.db.mapping import QuerySiblingIcMap
-from models.main.model import ZeroedStockHistory
-from models.onec_extract.constants import WAREHOUSE_OF_GOODS_UUID
-from models.onec_extract.model import WmsStockHistory, Nomenclature, Ic, FutureArrivalsStock
+from db_model.main import SessionLocal
+from db_model.mapping import QuerySiblingIcMap
+from db_model.core.model import ZeroedStockHistory
+from db_model.onec_extract.constants import WAREHOUSE_OF_GOODS_UUID
+from db_model.onec_extract.model import WmsStockHistory, Nomenclature, Ic, FutureArrivalsStock
 
 
 def on_failure(func: Callable) -> Callable:
