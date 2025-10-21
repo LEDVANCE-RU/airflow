@@ -7,8 +7,8 @@ OUT_FIELD_MAP = {
     QuerySiblingIcMap.IC: 'IC',
     QuerySiblingIcMap.IC_LIFECYCLE_STATUS: 'Статус жизненного цикла',
     QuerySiblingIcMap.ARTICLE: 'Артикул',
-    QuerySiblingIcMap.SIBLING_IC: '',
-    QuerySiblingIcMap.SIBLING_IC_LIFECYCLE_STATUS: ''
+    QuerySiblingIcMap.SIBLING_IC: 'Альтернативный IC',
+    QuerySiblingIcMap.SIBLING_IC_LIFECYCLE_STATUS: 'Статус жизненного цикла (альт. IC)'
 }
 
 
