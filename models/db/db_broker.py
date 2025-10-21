@@ -77,10 +77,14 @@ class DbBroker(metaclass=AutoRollbackMeta):
                 WmsStockHistory
             ).join(
                 Nomenclature,
-                sa.cast(Nomenclature.uuid, sa.String) == WmsStockHistory.nomenclature_uuid
+                sa.and_(
+                    Nomenclature.is_deleted == False,
+                    sa.cast(Nomenclature.uuid, sa.String) == WmsStockHistory.nomenclature_uuid,
+                )
             ).outerjoin(
                 Ic,
                 sa.and_(
+                    Ic.is_deleted == False,
                     Ic.nomenclature_uuid == Nomenclature.uuid,
                     Ic.uuid == WmsStockHistory.ic_uuid
                 )
@@ -181,22 +185,27 @@ class DbBroker(metaclass=AutoRollbackMeta):
                 IcSibling.uuid.label(QuerySiblingIcMap.SIBLING_IC_UUID),
                 IcSibling.name.label(QuerySiblingIcMap.SIBLING_IC),
                 IcSibling.lifecycle_status.label(QuerySiblingIcMap.SIBLING_IC_LIFECYCLE_STATUS)
-            ).join(
+            ).outerjoin(
                 Nomenclature,
-                Nomenclature.uuid == Ic.nomenclature_uuid
+                sa.and_(
+                    Nomenclature.is_deleted == False,
+                    Nomenclature.uuid == Ic.nomenclature_uuid,
+                )
             ).outerjoin(
                 IcSibling,
                 sa.and_(
+                    IcSibling.is_deleted == False,
                     IcSibling.nomenclature_uuid == Nomenclature.uuid,
-                    IcSibling.uuid != Ic.uuid
+                    IcSibling.uuid != Ic.uuid,
+                    True if lifecycle_statuses is None else
+                        sa.or_(
+                            IcSibling.lifecycle_status.in_(lifecycle_statuses),
+                            IcSibling.lifecycle_status.is_(None) if None in lifecycle_statuses else False
+                        )
                 )
             ).filter(
-                Ic.uuid.in_(ic_uuids),
-                True if lifecycle_statuses is None else
-                    sa.or_(
-                        IcSibling.lifecycle_status.in_(lifecycle_statuses),
-                        IcSibling.lifecycle_status.is_(None) if None in lifecycle_statuses else False
-                    )
+                Ic.is_deleted == False,
+                Ic.uuid.in_(ic_uuids)
             )
         )
         return stmt if return_stmt else self.session.execute(stmt).all()

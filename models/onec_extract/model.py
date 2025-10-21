@@ -19,6 +19,7 @@ class Nomenclature(AbstractBaseModel):
     uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', default=uuid.uuid4, primary_key=True)
     article = sa.Column(sa.String, name='Artikul')
     full_name = sa.Column(sa.String, name='NaimenovaniePolnoe')
+    is_deleted = sa.Column(sa.Boolean, name='PometkaUdaleniya')
 
 
 class Ic(AbstractBaseModel):
@@ -28,6 +29,7 @@ class Ic(AbstractBaseModel):
     nomenclature_uuid = sa.Column(UUID(as_uuid=True), name='VladeletsGuid')
     name = sa.Column(sa.String, name='Naimenovanie')
     lifecycle_status = sa.Column(sa.String, name="WA_StatusZHiznennogoTSikla")
+    is_deleted = sa.Column(sa.Boolean, name='PometkaUdaleniya')
 
 
 class Packages(AbstractBaseModel):
@@ -38,6 +40,7 @@ class Packages(AbstractBaseModel):
     ic_name = sa.Column(sa.String, name='WA_KHarakteristika')
     numerator = sa.Column(sa.Numeric, name='CHislitel')
     denominator = sa.Column(sa.Numeric, name='Znamenatel')
+    is_deleted = sa.Column(sa.Boolean, name='PometkaUdaleniya')
 
 
 class WmsStockHistory(AbstractBaseModel):
