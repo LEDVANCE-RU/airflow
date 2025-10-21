@@ -1,4 +1,3 @@
-import json
 import csv
 import logging
 import os
@@ -15,7 +14,6 @@ from constants import TZ_MSK
 from process_sales_ftp_to_pg.libs.transform import transform_sales_df
 from process_sales_ftp_to_pg.libs.mapping import SalesFieldsMap
 from process_sales_ftp_to_pg.libs.upload import PgSalesHook
-from process_sales_ftp_to_pg.libs.constants import SALES_EXPORT_SP_DIR
 
 
 with DAG(
@@ -28,6 +26,9 @@ with DAG(
 
     def get_local_tmp_dir_path():
         return os.path.join(Variable.get('tmp_dir_path'), 'sales')
+
+    def get_sales_export_sp_out_dir():
+        return Variable.get("sales_export_sp_out_dir")
 
     @task
     def download_task() -> str:
@@ -111,7 +112,8 @@ with DAG(
 
         current_date = datetime.now().strftime('%d.%m.%y')
         filename = f"sales_{current_date}.xlsx"
-        remote_fp = os.path.join(SALES_EXPORT_SP_DIR, filename)
+        sales_export_sp_out_dir = get_sales_export_sp_out_dir()
+        remote_fp = os.path.join(sales_export_sp_out_dir, filename)
 
         try:
             webdav_client.upload(remote_fp, temp_excel_fp)
@@ -125,8 +127,10 @@ with DAG(
         webdav_hook = WebDAVHook('webdav_sharepoint_root')
         webdav_client = webdav_hook.get_conn()
 
+        sales_export_sp_out_dir = get_sales_export_sp_out_dir()
+
         try:
-            files = webdav_client.list(SALES_EXPORT_SP_DIR)
+            files = webdav_client.list(sales_export_sp_out_dir)
         except Exception as e:
             logging.warning("Failed to list SharePoint directory: %s", e)
             return
@@ -143,7 +147,7 @@ with DAG(
                 file_date = datetime.strptime(date_str, '%d.%m.%y')
 
                 if file_date < cutoff_date:
-                    remote_fp = os.path.join(SALES_EXPORT_SP_DIR, file)
+                    remote_fp = os.path.join(sales_export_sp_out_dir, file)
                     webdav_client.clean(remote_fp)
                     deleted_count += 1
                     logging.info("Deleted old SharePoint file: %s (date: %s)", file, file_date.strftime('%d.%m.%Y'))
