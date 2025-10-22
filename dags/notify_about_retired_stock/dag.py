@@ -24,7 +24,7 @@ with DAG(
         from notify_about_retired_stock.libs.retrieve import get_zeroed_stock_with_siblings
 
         df = get_zeroed_stock_with_siblings()
-        if df.empty:
+        if df is None or df.empty:
             logging.info('Обнуление стоков не обнаружено.')
             return None
         local_dp = get_tmp_local_dir_path()
@@ -39,11 +39,12 @@ with DAG(
 
     @task
     def transform_task(df_fp: str) -> str:
-        from notify_about_retired_stock.libs.transform import transform
+        from notify_about_retired_stock.libs.transform import save_to_excel, transform
 
         out_dp = get_tmp_local_dir_path()
         out_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}.xlsx")
-        transform(df_fp, out_fp)
+        df = transform(df_fp)
+        save_to_excel(df, out_fp)
         return out_fp
 
     @task
