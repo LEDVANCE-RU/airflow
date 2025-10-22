@@ -1,11 +1,11 @@
 import pandas
 
 from db_model.db_broker import DbBroker
-from db_model.mapping import QuerySiblingIcMap
+from db_model.mapping import QuerySuccessorIcMap
 from db_model.onec_extract.constants import IcLifecycleStatus
 
 
-def get_zeroed_stock_with_siblings() -> pandas.DataFrame | None:
+def get_zeroed_stock_with_successors() -> pandas.DataFrame | None:
     with DbBroker() as db_broker:
         prev_check_date = db_broker.get_zeroed_stock_history_last_zeroed_date()
         # detect zero stock from 1C
@@ -22,15 +22,17 @@ def get_zeroed_stock_with_siblings() -> pandas.DataFrame | None:
 
         # get siblings with active lifecycle statuses for zero-stock ICs
         ic_uuids = list({r.ic_uuid for r in result_nullified_stock})
-        result_sibling_ics = db_broker.get_sibling_ics(
+        result_sibling_ics = db_broker.get_successor_ics(
             ic_uuids=ic_uuids,
             lifecycle_statuses=IcLifecycleStatus.active_statuses() + [None],
             return_stmt=True
         )
         df = pandas.read_sql(result_sibling_ics, db_broker.session.connection())
-        df = df[[QuerySiblingIcMap.IC,
-                 QuerySiblingIcMap.IC_LIFECYCLE_STATUS,
-                 QuerySiblingIcMap.ARTICLE,
-                 QuerySiblingIcMap.SIBLING_IC,
-                 QuerySiblingIcMap.SIBLING_IC_LIFECYCLE_STATUS]]
+        df = df[[QuerySuccessorIcMap.IC,
+                 QuerySuccessorIcMap.IC_LIFECYCLE_STATUS,
+                 QuerySuccessorIcMap.IC_PRIORITY,
+                 QuerySuccessorIcMap.ARTICLE,
+                 QuerySuccessorIcMap.SUCCESSOR_IC,
+                 QuerySuccessorIcMap.SUCCESSOR_IC_LIFECYCLE_STATUS,
+                 QuerySuccessorIcMap.SUCCESSOR_IC_PRIORITY]]
     return df

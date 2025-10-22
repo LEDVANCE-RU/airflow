@@ -9,7 +9,7 @@ import sqlalchemy.sql as sa_sql
 from sqlalchemy.orm import aliased as sa_aliased
 
 from db_model.main import SessionLocal
-from db_model.mapping import QuerySiblingIcMap
+from db_model.mapping import QuerySuccessorIcMap
 from db_model.core.model import ZeroedStockHistory
 from db_model.onec_extract.constants import WAREHOUSE_OF_GOODS_UUID
 from db_model.onec_extract.model import WmsStockHistory, Nomenclature, Ic, FutureArrivalsStock
@@ -175,19 +175,21 @@ class DbBroker(metaclass=AutoRollbackMeta):
         )
         return self.session.execute(stmt).scalars().all()
 
-    def get_sibling_ics(self, ic_uuids: list[sa_pg.UUID], lifecycle_statuses: list[str] = None,
-                        *, return_stmt: bool = False):
-        IcSibling = sa_aliased(Ic)  #type: Ic
+    def get_successor_ics(self, ic_uuids: list[sa_pg.UUID], lifecycle_statuses: list[str] = None,
+                          *, return_stmt: bool = False):
+        IcSuccessor = sa_aliased(Ic)  #type: Ic
         stmt = (
             sa.select(
-                Ic.uuid.label(QuerySiblingIcMap.IC_UUID),
-                Ic.name.label(QuerySiblingIcMap.IC),
-                Ic.lifecycle_status.label(QuerySiblingIcMap.IC_LIFECYCLE_STATUS),
-                Nomenclature.uuid.label(QuerySiblingIcMap.NOMENCLATURE_UUID),
-                Nomenclature.article.label(QuerySiblingIcMap.ARTICLE),
-                IcSibling.uuid.label(QuerySiblingIcMap.SIBLING_IC_UUID),
-                IcSibling.name.label(QuerySiblingIcMap.SIBLING_IC),
-                IcSibling.lifecycle_status.label(QuerySiblingIcMap.SIBLING_IC_LIFECYCLE_STATUS)
+                Ic.uuid.label(QuerySuccessorIcMap.IC_UUID),
+                Ic.name.label(QuerySuccessorIcMap.IC),
+                Ic.lifecycle_status.label(QuerySuccessorIcMap.IC_LIFECYCLE_STATUS),
+                Ic.priority.label(QuerySuccessorIcMap.IC_PRIORITY),
+                Nomenclature.uuid.label(QuerySuccessorIcMap.NOMENCLATURE_UUID),
+                Nomenclature.article.label(QuerySuccessorIcMap.ARTICLE),
+                IcSuccessor.uuid.label(QuerySuccessorIcMap.SUCCESSOR_IC_UUID),
+                IcSuccessor.name.label(QuerySuccessorIcMap.SUCCESSOR_IC),
+                IcSuccessor.lifecycle_status.label(QuerySuccessorIcMap.SUCCESSOR_IC_LIFECYCLE_STATUS),
+                IcSuccessor.priority.label(QuerySuccessorIcMap.SUCCESSOR_IC_PRIORITY),
             ).outerjoin(
                 Nomenclature,
                 sa.and_(
@@ -195,20 +197,24 @@ class DbBroker(metaclass=AutoRollbackMeta):
                     Nomenclature.uuid == Ic.nomenclature_uuid,
                 )
             ).outerjoin(
-                IcSibling,
+                IcSuccessor,
                 sa.and_(
-                    IcSibling.is_deleted == False,
-                    IcSibling.nomenclature_uuid == Nomenclature.uuid,
-                    IcSibling.uuid != Ic.uuid,
+                    IcSuccessor.is_deleted == False,
+                    IcSuccessor.nomenclature_uuid == Nomenclature.uuid,
+                    IcSuccessor.priority > Ic.priority,
                     True if lifecycle_statuses is None else
                         sa.or_(
-                            IcSibling.lifecycle_status.in_(lifecycle_statuses),
-                            IcSibling.lifecycle_status.is_(None) if None in lifecycle_statuses else False
+                            IcSuccessor.lifecycle_status.in_(lifecycle_statuses),
+                            IcSuccessor.lifecycle_status.is_(None) if None in lifecycle_statuses else False
                         )
                 )
             ).filter(
                 Ic.is_deleted == False,
                 Ic.uuid.in_(ic_uuids)
+            ).order_by(
+                Ic.name.asc(),
+                Nomenclature.article.asc(),
+                IcSuccessor.priority.asc()
             )
         )
         return stmt if return_stmt else self.session.execute(stmt).all()

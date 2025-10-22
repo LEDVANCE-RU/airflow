@@ -1,12 +1,14 @@
 from enum import StrEnum
 
 
-class QuerySiblingIcMap(StrEnum):
+class QuerySuccessorIcMap(StrEnum):
     IC_UUID = 'ic_uuid'
     IC = 'ic'
     IC_LIFECYCLE_STATUS = 'lifecycle_status'
+    IC_PRIORITY = 'priority'
     NOMENCLATURE_UUID = 'nomenclature_uuid'
     ARTICLE = 'article'
-    SIBLING_IC_UUID = 'sibling_ic_uuid'
-    SIBLING_IC = 'sibling_ic'
-    SIBLING_IC_LIFECYCLE_STATUS = 'sibling_ic_lifecycle_status'
+    SUCCESSOR_IC_UUID = 'successor_ic_uuid'
+    SUCCESSOR_IC = 'successor_ic'
+    SUCCESSOR_IC_LIFECYCLE_STATUS = 'successor_ic_lifecycle_status'
+    SUCCESSOR_IC_PRIORITY = 'successor_ic_priority'

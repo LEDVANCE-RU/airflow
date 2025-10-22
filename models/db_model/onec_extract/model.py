@@ -29,6 +29,7 @@ class Ic(AbstractBaseModel):
     nomenclature_uuid = sa.Column(UUID(as_uuid=True), name='VladeletsGuid')
     name = sa.Column(sa.String, name='Naimenovanie')
     lifecycle_status = sa.Column(sa.String, name="WA_StatusZHiznennogoTSikla")
+    priority = sa.Column(sa.Integer, name="WA_Prioritet")
     is_deleted = sa.Column(sa.Boolean, name='PometkaUdaleniya')
 
 

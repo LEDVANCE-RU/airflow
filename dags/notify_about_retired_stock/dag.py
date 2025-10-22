@@ -21,9 +21,9 @@ with DAG(
 ) as dag:
     @task
     def retrieve_task() -> str | None:
-        from notify_about_retired_stock.libs.retrieve import get_zeroed_stock_with_siblings
+        from notify_about_retired_stock.libs.retrieve import get_zeroed_stock_with_successors
 
-        df = get_zeroed_stock_with_siblings()
+        df = get_zeroed_stock_with_successors()
         if df is None or df.empty:
             logging.info('Обнуление стоков не обнаружено.')
             return None
