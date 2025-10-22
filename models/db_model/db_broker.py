@@ -3,9 +3,10 @@ from functools import wraps
 from typing import Callable, Any
 
 import sqlalchemy as sa
+import sqlalchemy.engine as sa_engine
 import sqlalchemy.dialects.postgresql as sa_pg
-from sqlalchemy.orm import aliased as sa_aliased
 import sqlalchemy.sql as sa_sql
+from sqlalchemy.orm import aliased as sa_aliased
 
 from db_model.main import SessionLocal
 from db_model.mapping import QuerySiblingIcMap
@@ -135,7 +136,8 @@ class DbBroker(metaclass=AutoRollbackMeta):
         stmt = sa.select(cte_expected_arrivals)
         return self.session.execute(stmt).all() if not return_stmt else stmt
 
-    def update_zeroed_stock_history(self, zeroed_stock_stmt: sa_sql.Select, *, commit: bool = False):
+    def update_zeroed_stock_history(self, zeroed_stock_stmt: sa_sql.Select, *, commit: bool = False)\
+            -> list[sa_engine.LegacyRow]:
         stmt = (
             sa_pg.insert(ZeroedStockHistory)
             .from_select(
@@ -149,11 +151,12 @@ class DbBroker(metaclass=AutoRollbackMeta):
                 zeroed_stock_stmt
             ).on_conflict_do_nothing(
                 constraint=ZeroedStockHistory.UQ_CONSTR_NAME
-            )
+            ).returning(ZeroedStockHistory.id)
         )
-        self.session.execute(stmt)
+        result = self.session.execute(stmt).all()
         if commit:
             self.session.commit()
+        return result
 
     def get_zeroed_stock_history_last_zeroed_date(self) -> datetime:
         stmt = sa.select(sa.func.max(ZeroedStockHistory.zeroed_before))
