@@ -1,11 +1,12 @@
 import logging
 import os
-import re
 import pandas as pd
 from datetime import datetime
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.smtp.hooks.smtp import SmtpHook
+
+from hooks.smtp import SmtpExtHook, Attachment, MimeAppTypeMap
 from send_stock_report.libs.constants import STOCK_REPORT_SQL
+
 
 def get_stock_report_df(pg_conn_id: str) -> pd.DataFrame:
     pg_hook = PostgresHook(postgres_conn_id=pg_conn_id)
@@ -16,6 +17,7 @@ def get_stock_report_df(pg_conn_id: str) -> pd.DataFrame:
     logging.info("Successfully fetched %s rows.", len(report_df))
     
     return report_df
+
 
 def send_report_by_email(report_df: pd.DataFrame, recipients: dict, tmp_dir: str):
     if report_df.empty:
@@ -32,8 +34,7 @@ def send_report_by_email(report_df: pd.DataFrame, recipients: dict, tmp_dir: str
     cc = recipients.get('cc') or []
     bcc = recipients.get('bcc') or []
 
-    smtp_hook = SmtpHook('smtp_sys_tech')
-    smtp_hook.get_conn()
+    smtp_hook = SmtpExtHook('smtp_sys_tech')
     smtp_hook.send_email_smtp(
         to=to,
         cc=cc,
@@ -44,6 +45,6 @@ def send_report_by_email(report_df: pd.DataFrame, recipients: dict, tmp_dir: str
             "<p>Письмо было сформировано и отправлено автоматически. Просьба не отвечать на данное письмо.</p>"
             "<p>По всем возникающим вопросам Вы можете обращаться к ответственному сотруднику отдела по работе с клиентами АО «ЛЕДВАНС»</p>"
             ),
-        files=[filepath],
+        files=[Attachment(filepath, mime_type=MimeAppTypeMap.EXCEL)],
     )
     logging.info("Email sent to: to=%s cc=%s bcc=%s", to, cc, bcc)

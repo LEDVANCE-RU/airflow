@@ -4,7 +4,7 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from enum import StrEnum
-from typing import Iterable, Any
+from typing import Iterable
 
 from airflow.providers.smtp.hooks.smtp import SmtpHook
 
@@ -17,8 +17,8 @@ class MimeAppTypeMap(StrEnum):
 @dataclass
 class Attachment:
     filepath: str
-    mime_type: MimeAppTypeMap | str = MimeAppTypeMap.DEFAULT
     filename: InitVar[str] = None
+    mime_type: MimeAppTypeMap | str = MimeAppTypeMap.DEFAULT
 
     _filename: str = field(init=False, repr=False)
 
@@ -45,12 +45,12 @@ class SmtpExtHook(SmtpHook):
                         html_content: str | None = None,
                         from_email: str | None = None,
                         files: list[Attachment] | None = None,
-                        dryrun: bool = False,
+                        # dryrun: bool = False,
                         cc: str | Iterable[str] | None = None,
                         bcc: str | Iterable[str] | None = None,
                         mime_subtype: str = "mixed",
-                        mime_charset: str = "utf-8",
-                        custom_headers: dict[str, Any] | None = None,
+                        # mime_charset: str = "utf-8",
+                        # custom_headers: dict[str, Any] | None = None,
                         **kwargs,):
         conn = self.get_conn()
         msg = MIMEMultipart()
