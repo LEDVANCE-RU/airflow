@@ -1,8 +1,6 @@
 from airflow import DAG
 from airflow.sdk import task
-from datetime import datetime
-
-from asyncpg.pgproto.pgproto import timedelta
+from datetime import datetime, timedelta
 
 from constants import TZ_MSK
 from db_model.db_broker import DbBroker
