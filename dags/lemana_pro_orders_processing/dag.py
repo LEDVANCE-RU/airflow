@@ -3,7 +3,6 @@ from airflow.sdk import task
 from datetime import datetime, timedelta
 
 from constants import TZ_MSK
-from db_model.db_broker import DbBroker
 
 
 with DAG(
@@ -14,8 +13,10 @@ with DAG(
 ) as dag:
     @task
     def retrieve_task():
-        from hooks.exchange import ExchangeHook
         from exchangelib import EWSDateTime, UTC
+
+        from db_model.db_broker import DbBroker
+        from hooks.exchange import ExchangeHook
 
         from lemana_pro_orders_processing.libs.constants import SENDER, SUBJECT_PATTERN
         from lemana_pro_orders_processing.libs.order_parser import OrderParser
