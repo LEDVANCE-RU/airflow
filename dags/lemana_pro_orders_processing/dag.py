@@ -36,3 +36,5 @@ with DAG(
             with DbBroker() as db_broker:
                 db_broker.insert_lemana_pro_order(order)
             item.move_to_trash()
+
+    retrieve_task()
