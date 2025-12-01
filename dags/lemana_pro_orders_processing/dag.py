@@ -1,92 +1,40 @@
-import re
+from airflow import DAG
+from airflow.sdk import task
 from datetime import datetime
 
-import bs4
-from attr import dataclass
+from asyncpg.pgproto.pgproto import timedelta
 
-from exchangelib import DELEGATE, Credentials, Account, Configuration, EWSDateTime, UTC
-
-from constants import TZ_UTC
-
-HOST = 'imap.lancloud.ru'
-PORT = 993
-USERNAME = ''
-PASSWORD = ''
-
-SENDER = ''
-SUBJECT_PATTERN = 'Новый заказ '
-
-ORDER_NUM_HEADER = 'Номер отправления'
-DELIVERY_DATE_HEADER = 'Дата доставки'
-ARTICLE_PATTERN = re.compile(r'Артикул: (\d+)')
-PRICE_PATTERN = re.compile(r'(\d+\.?\d*)\xa0руб\.')
-QTY_PATTERN = re.compile(r'(\d+)\xa0шт\.')
-ORDER_NUM_PREFIX = '№ '
-
-IN_DATE_FORMAT = '%Y-%m-%d'
-
-TR = 'tr'
-
-@dataclass
-class Item:
-    article: str
-    price: float
-    qty: int
+from constants import TZ_MSK
+from db_model.db_broker import DbBroker
 
 
-@dataclass
-class Order:
-    num: str
-    delivery_date: datetime
-    items: list[Item]
+with DAG(
+    dag_id="lemana_pro_orders_processing",
+    start_date=datetime(2025, 1, 1, tzinfo=TZ_MSK),
+    schedule='0 * * * *',
+    catchup=False,
+) as dag:
+    @task
+    def retrieve_task():
+        from hooks.exchange import ExchangeHook
+        from exchangelib import EWSDateTime, UTC
 
+        from lemana_pro_orders_processing.libs.constants import SENDER, SUBJECT_PATTERN
+        from lemana_pro_orders_processing.libs.order_parser import OrderParser
 
-class OrderParser:
-    def __init__(self):
-        self._soup = None
+        exch_hook = ExchangeHook('exchange_sys_tech')
+        exch_hook.get_conn()
 
-    def parse(self, html_contents: str) -> Order:
-        self._soup = bs4.BeautifulSoup(html_contents, features="lxml")
-        order_num_header_node = self._soup.find(string=ORDER_NUM_HEADER).find_parent(TR).find_next(TR)
-        order_num = order_num_header_node.get_text(strip=True).replace(ORDER_NUM_PREFIX, '')
-
-        delivery_date_header_node = self._soup.find(string=DELIVERY_DATE_HEADER).find_parent(TR).find_next(TR)
-        delivery_date = datetime.strptime(delivery_date_header_node.get_text(strip=True), IN_DATE_FORMAT)
-
-        items = self._parse_items()
-
-        return Order(
-            num = order_num,
-            delivery_date=delivery_date,
-            items=items
-        )
-
-    def _parse_items(self) -> list[Item]:
-        values = []
-        for pattern in [ARTICLE_PATTERN, PRICE_PATTERN, QTY_PATTERN]:
-            nodes = self._soup.find_all(string=pattern)
-            values.append([re.search(pattern, n.get_text(strip=True)).group(1) for n in nodes])
-
-        return [Item(article=v[0], price=float(v[1]), qty=int(v[2])) for v in zip(*values)]
-
-
-credentials = Credentials(USERNAME, PASSWORD)
-config = Configuration(server='mail.lancloud.ru', credentials=credentials)
-account = Account(USERNAME,
-                  config=config,
-                  credentials=credentials,
-                  autodiscover=False,
-                  access_type=DELEGATE)
-
-parser = OrderParser()
-
-for item in account.inbox.filter(
-        sender=SENDER,
-        subject__startswith=SUBJECT_PATTERN,
-        datetime_received__range=(
-            EWSDateTime.from_datetime(datetime(2025, 11, 27, 13, 43, 13, tzinfo=TZ_UTC)),
-            EWSDateTime.now(UTC)
-        )
-).order_by("-datetime_received"):
-    # print(item.subject, item.sender, item.datetime_received)
-    order = parser.parse(item.body)
+        parser = OrderParser()
+        orders = []
+        now = EWSDateTime.now(UTC)
+        for item in exch_hook.iter_inbox(
+                sender=SENDER,
+                subject__contains=SUBJECT_PATTERN,
+                datetime_received__range=(now - timedelta(days=7), now)
+        ):
+            order = parser.parse(item.body, item.datetime_received)
+            orders.append(order)
+            with DbBroker() as db_broker:
+                db_broker.insert_lemana_pro_order(order)
+            item.move_to_trash()
