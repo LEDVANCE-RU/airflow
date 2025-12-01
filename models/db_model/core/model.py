@@ -1,5 +1,5 @@
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 from db_model.constants import MAIN_SCHEMA
 from db_model.main import Base
@@ -31,3 +31,13 @@ class ZeroedStockHistory(AbstractBaseModel):
                             name=UQ_CONSTR_NAME),
         AbstractBaseModel.__table_args__
     )
+
+
+class LemanaProOrder(AbstractBaseModel):
+    __tablename__ = "lemana_pro_orders"
+
+    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
+    order_num = sa.Column(sa.String, nullable=False)
+    received_at = sa.Column(sa.TIMESTAMP(timezone=True), nullable=False)
+    contents_json = sa.Column(JSONB)
+    uploaded_at = sa.Column(sa.TIMESTAMP(timezone=True), index=True)

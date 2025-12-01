@@ -10,9 +10,10 @@ from sqlalchemy.orm import aliased as sa_aliased
 
 from db_model.main import SessionLocal
 from db_model.mapping import QuerySuccessorIcMap
-from db_model.core.model import ZeroedStockHistory
+from db_model.core.model import ZeroedStockHistory, LemanaProOrder
 from db_model.onec_extract.constants import WAREHOUSE_OF_GOODS_UUID
 from db_model.onec_extract.model import WmsStockHistory, Nomenclature, Ic, FutureArrivalsStock
+from lemana_pro_orders_processing.libs.order_parser import Order
 
 
 def on_failure(func: Callable) -> Callable:
@@ -218,3 +219,13 @@ class DbBroker(metaclass=AutoRollbackMeta):
             )
         )
         return stmt if return_stmt else self.session.execute(stmt).all()
+
+    def insert_lemana_pro_order(self, order: Order):
+        values = {
+            LemanaProOrder.order_num.key: order.num,
+            LemanaProOrder.received_at.key: order.received_at,
+            LemanaProOrder.contents_json.key: order.to_dict()
+        }
+        stmt = sa_pg.insert(LemanaProOrder).values(values)
+        self.session.execute(stmt)
+        self.session.commit()

@@ -5,7 +5,7 @@ from webdav3.client import Client
 
 
 class WebDAVHook(BaseHook):
-    def __init__(self, conn_id='webdav_default'):
+    def __init__(self, conn_id: str):
         super().__init__()
         self.conn_id = conn_id
 
@@ -19,7 +19,7 @@ class WebDAVHook(BaseHook):
         }
         return Client(options)
 
-    def get_full_path(self, relative_path):
+    def get_full_path(self, relative_path: str):
         conn = self.get_connection(self.conn_id)
         full_path = urljoin(conn.host.rstrip('/') + '/', relative_path.lstrip('/'))
         return full_path
