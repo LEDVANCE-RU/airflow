@@ -1,7 +1,12 @@
 import uuid
 from enum import StrEnum
 
-WAREHOUSE_OF_GOODS_UUID = uuid.UUID('c3c4db62-d07b-11ee-a0f7-9b35e1ceb5f3')
+
+class WarehouseUUID:
+    GOODS = uuid.UUID('c3c4db62-d07b-11ee-a0f7-9b35e1ceb5f3')
+    BLOCK = uuid.UUID('2d90f1d2-12b2-11ef-9917-04421acb8ad5')
+    SHORTAGES = uuid.UUID('8e846478-9750-11ef-9919-04421acb8ad5')
+
 
 class IcLifecycleStatus(StrEnum):
     NEW = 'NEW - Новинка'

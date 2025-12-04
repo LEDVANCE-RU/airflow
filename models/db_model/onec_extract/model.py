@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from db_model.constants import ONEC_EXTRACT_SCHEMA
 from db_model.main import Base
-from db_model.types import NullableUUID, NullableUUIDString
+from db_model.types import NullableUUID, NullableUUIDString, DateTimeMSK
 
 
 class AbstractBaseModel(Base):
@@ -49,8 +49,8 @@ class WmsStockHistory(AbstractBaseModel):
 
     nomenclature_uuid = sa.Column(NullableUUIDString, name='NomenklaturaGuid', primary_key=True)
     ic_uuid = sa.Column(NullableUUID(as_uuid=True), name='KHarakteristikaGuid', primary_key=True)
-    period = sa.Column(sa.DateTime, name='Period', primary_key=True)
-    cut_date = sa.Column(sa.DateTime, name='DataSreza')
+    period = sa.Column(DateTimeMSK, name='Period', primary_key=True)
+    cut_date = sa.Column(DateTimeMSK, name='DataSreza')
     status = sa.Column(sa.String, name='Sostoyanie')
     stock = sa.Column(sa.Numeric, name='Kolichestvo')
     article = sa.Column(sa.String, name='NomenklaturaArtikul')
@@ -67,3 +67,22 @@ class FutureArrivalsStock(AbstractBaseModel):
     document = sa.Column(sa.String, name='DokumentPostupleniya')
     warehouse_uuid = sa.Column(NullableUUID(as_uuid=True), name='SkladGuid')
     receipt_in_progress_qty = sa.Column(sa.Numeric, name='PrinimaetsyaOstatok')
+    yet_to_arrive_qty = sa.Column(sa.Numeric, name='KOformleniyuNakladnykhPoRasporyazheniyuOstatok')
+
+
+class StockHistory(AbstractBaseModel):
+    __tablename__ = "TovaryNaSkladakhOstatki"
+
+    stock_date = sa.Column(DateTimeMSK, name='DataOstatka', primary_key=True)
+    warehouse_uuid = sa.Column(NullableUUID(as_uuid=True), name='SkladGuid', primary_key=True)
+    nomenclature_uuid = sa.Column(UUID(as_uuid=True), name='NomenklaturaGuid', primary_key=True)
+    ic_uuid = sa.Column(NullableUUID(as_uuid=True), name='KHarakteristikaGuid', primary_key=True)
+    stock = sa.Column(sa.Numeric, name='VNalichiiOstatok')
+    stock_to_issue = sa.Column(sa.Numeric, name='KOtgruzkeOstatok')
+
+
+class Warehouse(AbstractBaseModel):
+    __tablename__ = "Sklady"
+
+    warehouse_uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', primary_key=True)
+    name = sa.Column(sa.String, name='Naimenovanie')
