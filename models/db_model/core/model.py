@@ -24,6 +24,7 @@ class ZeroedStockHistory(AbstractBaseModel):
     ic_uuid = sa.Column(NullableUUID(as_uuid=True))
     article = sa.Column(sa.String)
     ic = sa.Column(sa.String)
+    yet_to_arrive_qty = sa.Column(sa.Numeric)
     receipt_in_progress_qty = sa.Column(sa.Numeric)
 
     __table_args__ = (
@@ -41,3 +42,12 @@ class LemanaProOrder(AbstractBaseModel):
     received_at = sa.Column(sa.TIMESTAMP(timezone=True), nullable=False)
     contents_json = sa.Column(JSONB)
     uploaded_at = sa.Column(sa.TIMESTAMP(timezone=True), index=True)
+
+
+class RuntimeState(AbstractBaseModel):
+    __tablename__ = "runtime_states"
+
+    key = sa.Column(sa.String, primary_key=True)
+    value_str = sa.Column(sa.String)
+    value_ts = sa.Column(sa.TIMESTAMP(timezone=True))
+    updated_on = sa.Column(sa.TIMESTAMP(timezone=True))

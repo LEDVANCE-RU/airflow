@@ -8,11 +8,12 @@ import sqlalchemy.dialects.postgresql as sa_pg
 import sqlalchemy.sql as sa_sql
 from sqlalchemy.orm import aliased as sa_aliased
 
+from constants import TZ_MSK, TZ_UTC
 from db_model.main import SessionLocal
 from db_model.mapping import QuerySuccessorIcMap
-from db_model.core.model import ZeroedStockHistory, LemanaProOrder
-from db_model.onec_extract.constants import WAREHOUSE_OF_GOODS_UUID
-from db_model.onec_extract.model import WmsStockHistory, Nomenclature, Ic, FutureArrivalsStock
+from db_model.core.model import ZeroedStockHistory, LemanaProOrder, RuntimeState
+from db_model.onec_extract.constants import WarehouseUUID
+from db_model.onec_extract.model import WmsStockHistory, Nomenclature, Ic, FutureArrivalsStock, StockHistory
 from lemana_pro_orders_processing.libs.order_parser import Order
 
 
@@ -53,88 +54,216 @@ class DbBroker(metaclass=AutoRollbackMeta):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.session.close()
 
-    def get_last_wms_stock_date(self) -> datetime:
-        return self.session.query(sa.func.max(WmsStockHistory.period)).scalar()
+    def get_runtime_state(self, key: str) -> RuntimeState | None:
+        stmt = sa.select(RuntimeState).filter(RuntimeState.key == key)
+        return self.session.execute(stmt).scalar_one_or_none()
 
-    def get_wms_zeroed_stock(self, since: datetime = None, to: datetime = None,
-                             *, return_stmt: bool = False) -> list[sa.engine.Row] | sa_sql.Select:
-        """Get ICs with zeroed stock since given datetime + planned arrivals."""
+    def set_runtime_state(self, key: str, value: Any, commit: bool = False):
+        value_col = RuntimeState.value_str
+        if isinstance(value, datetime):
+            value_col = RuntimeState.value_ts
+        values = {
+            RuntimeState.key.key: key,
+            value_col.key: value,
+            RuntimeState.updated_on.key: datetime.now(TZ_UTC)
+        }
+        stmt = (
+            sa_pg.insert(RuntimeState)
+            .values(values)
+            .on_conflict_do_update(
+                index_elements=[RuntimeState.key],
+                set_=values
+            )
+        )
+        self.session.execute(stmt)
+        if commit:
+            self.session.commit()
 
-        # actual stock datetime
-        if not to:
-            to = self.get_last_wms_stock_date()
-        since = since or to - timedelta(days=7)
+    # def get_last_wms_stock_date(self) -> datetime:
+    #     return self.session.query(sa.func.max(WmsStockHistory.period)).scalar()
+    #
+    # def get_wms_zeroed_stock(self, since: datetime = None, to: datetime = None,
+    #                          *, return_stmt: bool = False) -> list[sa.engine.Row] | sa_sql.Select:
+    #     """Get ICs with zeroed stock since given datetime + planned arrivals."""
+    #
+    #     # actual stock datetime
+    #     if not to:
+    #         to = self.get_last_wms_stock_date()
+    #     since = since or to - timedelta(days=30)
+    #
+    #     WmsStockHistoryLast = sa_aliased(WmsStockHistory)  # type: WmsStockHistory
+    #
+    #     # get zeroed-stock ICs since given datetime
+    #     cte_nullified_stock = (
+    #         sa.select(
+    #             Nomenclature.uuid.label('nomenclature_uuid'),
+    #             Nomenclature.article,
+    #             Ic.uuid.label('ic_uuid'),
+    #             Ic.name,
+    #             WmsStockHistory.period
+    #         ).select_from(
+    #             WmsStockHistory
+    #         ).join(
+    #             Nomenclature,
+    #             sa.and_(
+    #                 Nomenclature.is_deleted == False,
+    #                 sa.cast(Nomenclature.uuid, sa.String) == WmsStockHistory.nomenclature_uuid,
+    #             )
+    #         ).outerjoin(
+    #             Ic,
+    #             sa.and_(
+    #                 Ic.is_deleted == False,
+    #                 Ic.nomenclature_uuid == Nomenclature.uuid,
+    #                 Ic.uuid == WmsStockHistory.ic_uuid
+    #             )
+    #         ).outerjoin(
+    #             WmsStockHistoryLast,
+    #             sa.and_(
+    #                 WmsStockHistoryLast.nomenclature_uuid == WmsStockHistory.nomenclature_uuid,
+    #                 WmsStockHistoryLast.ic_uuid == WmsStockHistory.ic_uuid,
+    #                 WmsStockHistoryLast.period == to
+    #             )
+    #         ).filter(
+    #             WmsStockHistory.ic_uuid.isnot(None),
+    #             WmsStockHistory.nomenclature_uuid.isnot(None),
+    #             WmsStockHistoryLast.nomenclature_uuid.is_(None),
+    #             WmsStockHistory.period >= since,
+    #             WmsStockHistory.period < to
+    #         ).distinct().cte(name='q_nullified_stock')
+    #     )
+    #
+    #     # get future arrivals for zeroed-stock ICs
+    #     cte_expected_arrivals = (
+    #         sa.select(
+    #             sa_sql.literal(to, type_=sa.TIMESTAMP).label('last_wms_stock_date'),
+    #             sa.func.max(cte_nullified_stock.c.period).label('period'),
+    #             cte_nullified_stock.c.nomenclature_uuid,
+    #             cte_nullified_stock.c.article,
+    #             cte_nullified_stock.c.ic_uuid,
+    #             cte_nullified_stock.c.name,
+    #             sa.func.coalesce(
+    #                 sa.func.sum(FutureArrivalsStock.receipt_in_progress_qty),
+    #                 0.0
+    #             ).label('receipt_in_progress_qty')
+    #         ).outerjoin(
+    #             FutureArrivalsStock,
+    #             sa.and_(
+    #                 FutureArrivalsStock.nomenclature_uuid == cte_nullified_stock.c.nomenclature_uuid,
+    #                 FutureArrivalsStock.ic_uuid == cte_nullified_stock.c.ic_uuid,
+    #                 FutureArrivalsStock.warehouse_uuid == WarehouseUUID.GOODS
+    #             )
+    #         ).group_by(
+    #             cte_nullified_stock.c.nomenclature_uuid,
+    #             cte_nullified_stock.c.article,
+    #             cte_nullified_stock.c.ic_uuid,
+    #             cte_nullified_stock.c.name
+    #         ).cte(name='q_expected_arrivals')
+    #     )
+    #
+    #     stmt = sa.select(cte_expected_arrivals)
+    #     return self.session.execute(stmt).all() if not return_stmt else stmt
 
-        WmsStockHistoryLast = sa_aliased(WmsStockHistory)  # type: WmsStockHistory
+    def get_actual_stock_datetime(self) -> datetime:
+        now = datetime.now(TZ_MSK).replace(tzinfo=None)
+        stmt = (
+            sa.select(sa.func.max(StockHistory.stock_date))
+            .filter(StockHistory.stock_date <= now + timedelta(days=1))
+        )
+        return self.session.execute(stmt).scalar()
 
-        # get zeroed-stock ICs since given datetime
-        cte_nullified_stock = (
+    def get_zeroed_stock(self, since: datetime, to: datetime, arrival_doc_obsolescence: timedelta = None,
+                         *, return_stmt: bool = False) -> list[sa.engine.Row] | sa_sql.Select:
+        def _build_cte_stock(extra_filter, name: str):
+            return (
+                sa.select(
+                    StockHistory.nomenclature_uuid,
+                    StockHistory.ic_uuid,
+                    sa.func.max(StockHistory.stock_date).label(StockHistory.stock_date.key)
+                ).filter(
+                    extra_filter,
+                    StockHistory.warehouse_uuid.in_(wh_uuids)
+                ).group_by(
+                    StockHistory.nomenclature_uuid,
+                    StockHistory.ic_uuid
+                ).having(
+                    sa.func.sum(StockHistory.stock) > 0
+                ).cte(name)
+            )
+
+        wh_uuids = [WarehouseUUID.GOODS,
+                    WarehouseUUID.BLOCK,
+                    WarehouseUUID.SHORTAGES]
+
+        now_msk_naive = datetime.now(TZ_MSK).replace(tzinfo=None)
+
+        cte_last_stock = _build_cte_stock(StockHistory.stock_date == to, 'q_last_stock')
+        cte_prev_stock = _build_cte_stock(
+            sa.and_(
+                StockHistory.stock_date >= since,
+                StockHistory.stock_date < to
+            ),
+            'q_prev_stock'
+        )
+        cte_zeroed_stock = (
             sa.select(
-                Nomenclature.uuid.label('nomenclature_uuid'),
-                Nomenclature.article,
-                Ic.uuid.label('ic_uuid'),
-                Ic.name,
-                WmsStockHistory.period
-            ).select_from(
-                WmsStockHistory
-            ).join(
-                Nomenclature,
-                sa.and_(
-                    Nomenclature.is_deleted == False,
-                    sa.cast(Nomenclature.uuid, sa.String) == WmsStockHistory.nomenclature_uuid,
-                )
+                cte_prev_stock.c.nomenclature_uuid,
+                cte_prev_stock.c.ic_uuid,
+                cte_prev_stock.c.stock_date
             ).outerjoin(
-                Ic,
+                cte_last_stock,
                 sa.and_(
-                    Ic.is_deleted == False,
-                    Ic.nomenclature_uuid == Nomenclature.uuid,
-                    Ic.uuid == WmsStockHistory.ic_uuid
-                )
-            ).outerjoin(
-                WmsStockHistoryLast,
-                sa.and_(
-                    WmsStockHistoryLast.nomenclature_uuid == WmsStockHistory.nomenclature_uuid,
-                    WmsStockHistoryLast.ic_uuid == WmsStockHistory.ic_uuid,
-                    WmsStockHistoryLast.period == to
+                    cte_last_stock.c.nomenclature_uuid == cte_prev_stock.c.nomenclature_uuid,
+                    cte_last_stock.c.ic_uuid == cte_prev_stock.c.ic_uuid,
                 )
             ).filter(
-                WmsStockHistory.ic_uuid.isnot(None),
-                WmsStockHistory.nomenclature_uuid.isnot(None),
-                WmsStockHistoryLast.nomenclature_uuid.is_(None),
-                WmsStockHistory.period >= since,
-                WmsStockHistory.period < to
-            ).distinct().cte(name='q_nullified_stock')
+                cte_last_stock.c.nomenclature_uuid.is_(None)
+            ).cte('q_zeroed_stock')
         )
 
-        # get future arrivals for zeroed-stock ICs
-        cte_expected_arrivals = (
+        min_arrival_doc_date = None if not arrival_doc_obsolescence else now_msk_naive - arrival_doc_obsolescence
+
+        cte_mixin_arrivals = (
             sa.select(
-                sa_sql.literal(to, type_=sa.TIMESTAMP).label('last_wms_stock_date'),
-                sa.func.max(cte_nullified_stock.c.period).label('period'),
-                cte_nullified_stock.c.nomenclature_uuid,
-                cte_nullified_stock.c.article,
-                cte_nullified_stock.c.ic_uuid,
-                cte_nullified_stock.c.name,
+                sa_sql.literal(to, type_=sa.TIMESTAMP).label('zeroed_before'),
+                cte_zeroed_stock.c.stock_date,
+                cte_zeroed_stock.c.nomenclature_uuid,
+                Nomenclature.article,
+                cte_zeroed_stock.c.ic_uuid,
+                Ic.name,
+                sa.func.coalesce(
+                    sa.func.sum(FutureArrivalsStock.yet_to_arrive_qty),
+                    0.0
+                ).label(FutureArrivalsStock.yet_to_arrive_qty.key),
                 sa.func.coalesce(
                     sa.func.sum(FutureArrivalsStock.receipt_in_progress_qty),
                     0.0
-                ).label('receipt_in_progress_qty')
+                ).label(FutureArrivalsStock.receipt_in_progress_qty.key)
+            ).join(
+                Nomenclature,
+                Nomenclature.uuid == cte_zeroed_stock.c.nomenclature_uuid,
             ).outerjoin(
-                FutureArrivalsStock,
+                Ic,
                 sa.and_(
-                    FutureArrivalsStock.nomenclature_uuid == cte_nullified_stock.c.nomenclature_uuid,
-                    FutureArrivalsStock.ic_uuid == cte_nullified_stock.c.ic_uuid,
-                    FutureArrivalsStock.warehouse_uuid == WAREHOUSE_OF_GOODS_UUID
+                    Ic.nomenclature_uuid == cte_zeroed_stock.c.nomenclature_uuid,
+                    Ic.uuid == cte_zeroed_stock.c.ic_uuid
+                )
+            ).outerjoin(FutureArrivalsStock,
+                sa.and_(
+                    FutureArrivalsStock.nomenclature_uuid == cte_zeroed_stock.c.nomenclature_uuid,
+                    FutureArrivalsStock.ic_uuid == cte_zeroed_stock.c.ic_uuid,
+                    FutureArrivalsStock.warehouse_uuid.in_(wh_uuids),
+                    True if not min_arrival_doc_date
+                        else FutureArrivalsStock.document_date >= min_arrival_doc_date
                 )
             ).group_by(
-                cte_nullified_stock.c.nomenclature_uuid,
-                cte_nullified_stock.c.article,
-                cte_nullified_stock.c.ic_uuid,
-                cte_nullified_stock.c.name
-            ).cte(name='q_expected_arrivals')
+                cte_zeroed_stock.c.nomenclature_uuid,
+                cte_zeroed_stock.c.ic_uuid,
+                cte_zeroed_stock.c.stock_date,
+                Nomenclature.article,
+                Ic.name
+            ).cte('q_arrivals')
         )
-
-        stmt = sa.select(cte_expected_arrivals)
+        stmt = sa.select(cte_mixin_arrivals)
         return self.session.execute(stmt).all() if not return_stmt else stmt
 
     def update_zeroed_stock_history(self, zeroed_stock_stmt: sa_sql.Select, *, commit: bool = False)\
@@ -148,6 +277,7 @@ class DbBroker(metaclass=AutoRollbackMeta):
                  ZeroedStockHistory.article.name,
                  ZeroedStockHistory.ic_uuid.name,
                  ZeroedStockHistory.ic.name,
+                 ZeroedStockHistory.yet_to_arrive_qty.name,
                  ZeroedStockHistory.receipt_in_progress_qty.name],
                 zeroed_stock_stmt
             ).on_conflict_do_nothing(
@@ -159,18 +289,18 @@ class DbBroker(metaclass=AutoRollbackMeta):
             self.session.commit()
         return result
 
-    def get_zeroed_stock_history_last_zeroed_date(self) -> datetime:
-        stmt = sa.select(sa.func.max(ZeroedStockHistory.zeroed_before))
-        return self.session.execute(stmt).scalar()
-
-    def get_zeroed_stock_history(self, zeroed_before: datetime, with_receipts: bool = True)\
+    def get_zeroed_stock_history(self, zeroed_before: datetime, with_expected_arrivals: bool = True)\
             -> list[ZeroedStockHistory]:
         stmt = (
             sa.select(ZeroedStockHistory)
             .filter(
                 sa.and_(
                     ZeroedStockHistory.zeroed_before == zeroed_before,
-                    True if with_receipts else ZeroedStockHistory.receipt_in_progress_qty == 0
+                    True if with_expected_arrivals else
+                        sa.and_(
+                            ZeroedStockHistory.receipt_in_progress_qty == 0,
+                            ZeroedStockHistory.yet_to_arrive_qty == 0
+                        )
                 )
             )
         )

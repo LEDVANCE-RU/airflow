@@ -1,6 +1,38 @@
+import datetime
 import uuid
-from sqlalchemy import TypeDecorator, String
+from typing import Optional
+from zoneinfo import ZoneInfo
+
+from sqlalchemy import TypeDecorator, String, DateTime
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.engine import Dialect
+
+
+class DateTimeMSK(TypeDecorator[datetime.datetime]):
+    """Timezone Aware DateTime.
+
+    Ensure MSK is stored in the database and that TZ aware dates are returned for all dialects.
+    """
+    _TZ_MSK = ZoneInfo("Europe/Moscow")
+
+    impl = DateTime(timezone=True)
+    cache_ok = True
+
+    @property
+    def python_type(self) -> type[datetime.datetime]:
+        return datetime.datetime
+
+    def process_bind_param(self, value: Optional[datetime.datetime], dialect: Dialect) -> Optional[datetime.datetime]:
+        if value is None:
+            return value
+        return value.astimezone(self._TZ_MSK)
+
+    def process_result_value(self, value: Optional[datetime.datetime], dialect: Dialect) -> Optional[datetime.datetime]:
+        if value is None:
+            return value
+        if value.tzinfo is None:
+            return value.replace(tzinfo=self._TZ_MSK)
+        return value
 
 
 class NullableUUID(TypeDecorator):
