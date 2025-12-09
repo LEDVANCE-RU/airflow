@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas
 
 from db_model.db_broker import DbBroker
@@ -8,6 +10,10 @@ from notify_about_retired_stock.libs.constants import LAST_CHECK_KEY, DEFAULT_ST
 
 
 def get_zeroed_stock_with_successors() -> pandas.DataFrame | None:
+    def _set_last_check_date(db_broker: DbBroker, dt: datetime):
+        db_broker.set_runtime_state(LAST_CHECK_KEY, dt)
+        db_broker.session.commit()
+
     with DbBroker() as db_broker:
         actual_stock_datetime = db_broker.get_actual_stock_datetime()
         last_check = db_broker.get_runtime_state(LAST_CHECK_KEY)
@@ -19,6 +25,7 @@ def get_zeroed_stock_with_successors() -> pandas.DataFrame | None:
         new_ids = db_broker.update_zeroed_stock_history(zeroed_stock_stmt)
 
         if not new_ids:
+            _set_last_check_date(db_broker, actual_stock_datetime)
             return None
 
         # get all ICs with zero stock and no expected receipts
@@ -40,6 +47,6 @@ def get_zeroed_stock_with_successors() -> pandas.DataFrame | None:
                  QuerySuccessorIcMap.SUCCESSOR_IC_LIFECYCLE_STATUS,
                  QuerySuccessorIcMap.SUCCESSOR_IC_PRIORITY]]
 
-        db_broker.set_runtime_state(LAST_CHECK_KEY, actual_stock_datetime)
-        db_broker.session.commit()
+        _set_last_check_date(db_broker, actual_stock_datetime)
+
     return df
