@@ -1,5 +1,6 @@
 import csv
 import os
+import re
 import uuid
 import pandas as pd
 import logging
@@ -35,3 +36,15 @@ def align_columns(df: pd.DataFrame, table: str) -> pd.DataFrame:
     if not dest_columns:
         return df
     return df.reindex(columns=dest_columns)
+
+
+def extract_period_from_header(filepath: str) -> tuple[str, str]:
+    header_df = pd.read_excel(filepath, nrows=7)
+    df_str = header_df.to_string(index=False)
+    date_pattern = r'\d{2}\.\d{2}\.\d{4}'
+    match_dates = re.search(fr'Период: ({date_pattern}) - ({date_pattern})', df_str)
+    if match_dates:
+        from_, to_ = match_dates.groups()[:2]
+        return from_, to_
+    else:
+        raise ValueError(f"Не удалось определить период в заголовке отчета '{os.path.basename(filepath)}'")

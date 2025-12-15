@@ -1,14 +1,11 @@
 import pandas as pd
 from process_report_sources_to_pg.libs.constants import KEY_TO_TABLE, FILE_DTYPES
-from process_report_sources_to_pg.libs.common import export_df, align_columns, drop_trailing_total
-import re
+from process_report_sources_to_pg.libs.common import export_df, align_columns, drop_trailing_total, \
+    extract_period_from_header
 
 
 def read_ltm_header(file_path: str) -> pd.DataFrame:
-    header_df = pd.read_excel(file_path, nrows=7)
-    period_text = str(header_df.iloc[0, 3])
-    dates = re.findall(r'\d{2}\.\d{2}\.\d{4}', period_text)
-    ltm_from, ltm_to = dates[0], dates[1]
+    ltm_from, ltm_to = extract_period_from_header(file_path)
     period = f"{ltm_from} - {ltm_to}"
     period_df = pd.DataFrame({
         'ltm_period': [period],

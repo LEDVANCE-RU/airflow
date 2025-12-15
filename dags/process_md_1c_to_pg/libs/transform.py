@@ -23,7 +23,7 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     if 'ean' in df.columns:
         df['ean'] = df['ean'].str.strip()
     if 'deletion_mark' in df.columns:
-        df['deletion_mark'] = df['deletion_mark'].str.strip().str.lower().eq('yes').astype('boolean')
+        df['deletion_mark'] = df['deletion_mark'].astype(str).str.strip().str.lower().isin(['да', 'yes'])
     
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
     df.to_csv(export_fp,
