@@ -16,8 +16,9 @@ def transform(in_fp: str, out_dp: str):
     result = {k: None for k in list(map(str, ResultKeys))}
 
     df = pandas.read_excel(in_fp,
-                           usecols=list(src_map.keys()),
+                           #usecols=list(src_map.keys()),
                            dtype={k: v.type for k, v in src_map.items()})
+    df = df.reindex(columns=df.columns.intersection(list(src_map.keys())))
     df.rename(columns={k: v.name for k, v in src_map.items()},
               inplace=True)
     for f in [fmap.ic, fmap.article, fmap.description, fmap.ean, fmap.lifecycle]:
