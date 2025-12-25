@@ -92,17 +92,23 @@ select
     sr.pcs,
     sr.niv,
     sr.niv * (1-
-    case
-        when sr.period between '01.01.2024' and '31.12.2024' then mdns."01.01.2024"
-        when sr.period between '01.01.2025' and '30.06.2025' then mdns."01.01.2025"
-        when sr.period >= '01.07.2025' then mdns."01.07.2025"
-        else 0
-    end
+        case
+            when sr.period between '01.01.2024' and '31.12.2024' then mdns."01.01.2024"
+            when sr.period between '01.01.2025' and '31.03.2025' then mdns."01.01.2025"
+            when sr.period between '01.04.2025' and '30.06.2025' then mdns."01.04.2025"
+            when sr.period between '01.07.2025' and '30.09.2025' then mdns."01.07.2025"
+            when sr.period between '01.10.2025' and '31.12.2025' then mdns."01.10.2025"
+            when sr.period >= '01.01.2026' then mdns."01.01.2026"
+            else 0
+        end
     ) as ns,
     case
         when sr.period between '01.01.2024' and '31.12.2024' then mdns."01.01.2024"
-        when sr.period between '01.01.2025' and '30.06.2025' then mdns."01.01.2025"
-        when sr.period >= '01.07.2025' then mdns."01.07.2025"
+        when sr.period between '01.01.2025' and '31.03.2025' then mdns."01.01.2025"
+        when sr.period between '01.04.2025' and '30.06.2025' then mdns."01.04.2025"
+        when sr.period between '01.07.2025' and '30.09.2025' then mdns."01.07.2025"
+        when sr.period between '01.10.2025' and '31.12.2025' then mdns."01.10.2025"
+        when sr.period >= '01.01.2026' then mdns."01.01.2026"
         else 0
     end as coef
 from sales.sales_raw sr
