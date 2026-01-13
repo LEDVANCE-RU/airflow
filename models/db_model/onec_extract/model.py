@@ -44,6 +44,14 @@ class Packages(AbstractBaseModel):
     is_deleted = sa.Column(sa.Boolean, name='PometkaUdaleniya')
 
 
+class PackagesDepartments(AbstractBaseModel):
+    __tablename__ = "UpakovkiEdinitsyIzmereniyaWA_Podrazdeleniya"
+
+    package_uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', default=uuid.uuid4, primary_key=True)
+    department_uuid = sa.Column(UUID(as_uuid=True), name='"PodrazdelenieGuid"', default=uuid.uuid4,
+                                primary_key=True)
+
+
 class WmsStockHistory(AbstractBaseModel):
     __tablename__ = "WA_OstatkiIzWMSIstoriya"
 
