@@ -12,6 +12,7 @@ from constants import TZ_MSK, TZ_UTC
 from db_model.main import SessionLocal
 from db_model.mapping import QuerySuccessorIcMap
 from db_model.core.model import ZeroedStockHistory, LemanaProOrder, RuntimeState
+from db_model.marketprovider.model import Category, Product
 from db_model.onec_extract.constants import WarehouseUUID
 from db_model.onec_extract.model import WmsStockHistory, Nomenclature, Ic, FutureArrivalsStock, StockHistory
 from lemana_pro_orders_processing.libs.order_parser import Order
@@ -357,5 +358,39 @@ class DbBroker(metaclass=AutoRollbackMeta):
             LemanaProOrder.contents_json.key: order.to_dict()
         }
         stmt = sa_pg.insert(LemanaProOrder).values(values)
+        self.session.execute(stmt)
+        self.session.commit()
+
+    def upsert_marketprovider_categories(self, categories: list[Category]):
+        values = [c.to_dict() for c in categories]
+        insert_stmt = sa_pg.insert(Category).values(values)
+        stmt = (
+            insert_stmt.on_conflict_do_update(
+                index_elements=[Category.id],
+                set_={
+                    Category.name.key: insert_stmt.excluded.name,
+                    Category.level.key: insert_stmt.excluded.level,
+                    Category.parent_id.key: insert_stmt.excluded.parent_id,
+                    Category.status.key: insert_stmt.excluded.status
+                })
+        )
+        self.session.execute(stmt)
+        self.session.commit()
+
+    def upsert_marketprovider_products(self, products: list[Product]):
+        values = [p.to_dict() for p in products]
+        insert_stmt = sa_pg.insert(Product).values(values)
+        stmt = (
+            insert_stmt.on_conflict_do_update(
+                index_elements=[Product.id],
+                set_={
+                    Product.name.key: insert_stmt.excluded.name,
+                    Product.category_id.key: insert_stmt.excluded.category_id,
+                    Product.product_photo_url.key: insert_stmt.excluded.product_photo_url,
+                    Product.status_id.key: insert_stmt.excluded.status_id,
+                    Product.created_on.key: insert_stmt.excluded.created_on,
+                    Product.updated_on.key: insert_stmt.excluded.updated_on,
+                })
+        )
         self.session.execute(stmt)
         self.session.commit()
