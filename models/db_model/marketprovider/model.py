@@ -29,6 +29,8 @@ class Category(AbstractBaseModel):
     parent_id = sa.Column(sa.Integer, index=True)
     status = sa.Column(sa.String)
 
+    synced_at = sa.Column(sa.TIMESTAMP(timezone=True))
+
 
 class Product(AbstractBaseModel):
     __tablename__ = "products"
@@ -40,6 +42,9 @@ class Product(AbstractBaseModel):
     main_image_url = sa.Column(sa.String)
     predecessor = sa.Column(sa.String)
     origin_country = sa.Column(sa.String)
+    inner_code = sa.Column(sa.String)
+    vendor_code = sa.Column(sa.String)
+    ean_upc = sa.Column(sa.String)
     series = sa.Column(sa.String)
     marketing_name = sa.Column(sa.String)
     bulb = sa.Column(sa.String)
@@ -54,5 +59,7 @@ class Product(AbstractBaseModel):
     color_rendering_index = sa.Column(sa.String)
     lifespan = sa.Column(sa.Numeric)
     warranty_period = sa.Column(sa.Numeric)
-    created_on = sa.Column(sa.TIMESTAMP(timezone=True))
-    updated_on = sa.Column(sa.TIMESTAMP(timezone=True))
+    created_at = sa.Column(sa.TIMESTAMP(timezone=True))
+    updated_at = sa.Column(sa.TIMESTAMP(timezone=True))
+
+    synced_at = sa.Column(sa.TIMESTAMP(timezone=True))

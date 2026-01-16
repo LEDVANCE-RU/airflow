@@ -43,6 +43,10 @@ class ProductAttrName:
     MAIN_IMAGE = (ProductAttrGroupName.BASE, 'Главное изображение')
     PREDECESSOR = (ProductAttrGroupName.BASE, 'Предшественник')
     ORIGIN_COUNTRY = (ProductAttrGroupName.BASE, 'Страна производства')
+    INNER_CODE = (ProductAttrGroupName.BASE, 'Внутренний артикул')
+    VENDOR_CODE = (ProductAttrGroupName.BASE, 'Артикул производителя')
+    EAN_UPC = (ProductAttrGroupName.BASE, 'EAN / UPC')
+
 
     SERIES = (ProductAttrGroupName.HOUSING, 'Серия L4L')
     BULB = (ProductAttrGroupName.HOUSING, 'Колба')

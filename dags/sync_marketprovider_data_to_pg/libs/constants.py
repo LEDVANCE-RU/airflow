@@ -1,3 +1,3 @@
-LAST_SYNC_KEY = 'last_marketprovider_sync'
+LAST_SYNC_KEY = 'marketprovider_synced_at'
 PRODUCTS_SHORT_LIMIT = 1000
 PRODUCTS_FULL_LIMIT = 250
