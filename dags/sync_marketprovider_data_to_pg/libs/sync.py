@@ -34,7 +34,8 @@ def sync_categories(marketprovider_api_token):
 def sync_products(marketprovider_api_token: str, category_ids: list):
     mp = MarketProviderApiClient(marketprovider_api_token)
     db_broker = DbBroker()
-    last_sync_dt = db_broker.get_runtime_state(LAST_SYNC_KEY) or datetime(2000, 1, 1, tzinfo=TZ_UTC)
+    last_sync = db_broker.get_runtime_state(LAST_SYNC_KEY)
+    last_sync_dt = last_sync.value_ts if last_sync else datetime(2000, 1, 1, tzinfo=TZ_UTC)
 
     for category_id in category_ids:
         for batch in mp.get_products_short(category_id, paginate=True, limit=PRODUCTS_SHORT_LIMIT):
