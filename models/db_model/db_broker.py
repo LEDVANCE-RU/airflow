@@ -362,35 +362,31 @@ class DbBroker(metaclass=AutoRollbackMeta):
         self.session.commit()
 
     def upsert_marketprovider_categories(self, categories: list[Category]):
+        if not categories:
+            return
         values = [c.to_dict() for c in categories]
         insert_stmt = sa_pg.insert(Category).values(values)
+        index_elements = [Category.id]
         stmt = (
             insert_stmt.on_conflict_do_update(
-                index_elements=[Category.id],
-                set_={
-                    Category.name.key: insert_stmt.excluded.name,
-                    Category.level.key: insert_stmt.excluded.level,
-                    Category.parent_id.key: insert_stmt.excluded.parent_id,
-                    Category.status.key: insert_stmt.excluded.status
-                })
+                index_elements=index_elements,
+                set_=Category.get_update_set_for_upsert(insert_stmt, index_elements)
+            )
         )
         self.session.execute(stmt)
         self.session.commit()
 
     def upsert_marketprovider_products(self, products: list[Product]):
+        if not products:
+            return
         values = [p.to_dict() for p in products]
         insert_stmt = sa_pg.insert(Product).values(values)
+        index_elements = [Product.id]
         stmt = (
             insert_stmt.on_conflict_do_update(
-                index_elements=[Product.id],
-                set_={
-                    Product.name.key: insert_stmt.excluded.name,
-                    Product.category_id.key: insert_stmt.excluded.category_id,
-                    Product.product_photo_url.key: insert_stmt.excluded.product_photo_url,
-                    Product.status_id.key: insert_stmt.excluded.status_id,
-                    Product.created_on.key: insert_stmt.excluded.created_on,
-                    Product.updated_on.key: insert_stmt.excluded.updated_on,
-                })
+                index_elements=index_elements,
+                set_=Product.get_update_set_for_upsert(insert_stmt, index_elements)
+            )
         )
         self.session.execute(stmt)
         self.session.commit()

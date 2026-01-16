@@ -17,7 +17,7 @@ def get_zeroed_stock_with_successors() -> pandas.DataFrame | None:
     with DbBroker() as db_broker:
         actual_stock_datetime = db_broker.get_actual_stock_datetime()
         last_check = db_broker.get_runtime_state(LAST_CHECK_KEY)
-        last_checked_at = last_check.value_ts if last_check else DEFAULT_STOCK_HISTORY_HORIZON
+        last_checked_at = last_check.value_ts if last_check else actual_stock_datetime - DEFAULT_STOCK_HISTORY_HORIZON
         zeroed_stock_stmt = db_broker.get_zeroed_stock(since=last_checked_at, to=actual_stock_datetime,
                                                        arrival_doc_obsolescence=ARRIVAL_DOC_OBSOLESCENCE_THRESHOLD,
                                                        return_stmt=True)
