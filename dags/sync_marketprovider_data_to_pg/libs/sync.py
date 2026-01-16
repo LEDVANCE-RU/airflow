@@ -46,6 +46,8 @@ def sync_products(marketprovider_api_token: str, category_ids: list):
                 if updated_at > last_sync_dt:
                     product_ids.append(item[ProductField.ID])
             products_full_batches_num = ceil(PRODUCTS_SHORT_LIMIT / PRODUCTS_FULL_LIMIT)
+            if not product_ids:
+                continue
             for n in range(0, products_full_batches_num):
                 start_idx = n * PRODUCTS_FULL_LIMIT
                 end_idx = (n + 1) * PRODUCTS_FULL_LIMIT
