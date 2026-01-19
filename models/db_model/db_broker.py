@@ -6,12 +6,14 @@ import sqlalchemy as sa
 import sqlalchemy.engine as sa_engine
 import sqlalchemy.dialects.postgresql as sa_pg
 import sqlalchemy.sql as sa_sql
+from sqlalchemy.engine import Connection
 from sqlalchemy.orm import aliased as sa_aliased
 
 from constants import TZ_MSK, TZ_UTC
 from db_model.main import SessionLocal
 from db_model.mapping import QuerySuccessorIcMap
 from db_model.core.model import ZeroedStockHistory, LemanaProOrder, RuntimeState
+from db_model.marketprovider.model import Category, Product, TempProduct
 from db_model.onec_extract.constants import WarehouseUUID
 from db_model.onec_extract.model import WmsStockHistory, Nomenclature, Ic, FutureArrivalsStock, StockHistory
 from lemana_pro_orders_processing.libs.order_parser import Order
@@ -357,5 +359,83 @@ class DbBroker(metaclass=AutoRollbackMeta):
             LemanaProOrder.contents_json.key: order.to_dict()
         }
         stmt = sa_pg.insert(LemanaProOrder).values(values)
+        self.session.execute(stmt)
+        self.session.commit()
+
+    def upsert_marketprovider_categories(self, categories: list[Category]):
+        if not categories:
+            return
+        values = [c.to_dict() for c in categories]
+        insert_stmt = sa_pg.insert(Category).values(values)
+        index_elements = [Category.id]
+        stmt = (
+            insert_stmt.on_conflict_do_update(
+                index_elements=index_elements,
+                set_=Category.get_update_set_for_upsert(insert_stmt, index_elements)
+            )
+        )
+        self.session.execute(stmt)
+        self.session.commit()
+
+    def create_temp_products_table(self, conn: Connection):
+        TempProduct.__table__.create(conn)
+
+    def upload_marketprovider_temp_products(self, conn: Connection, products: list[TempProduct]):
+        values = [p.to_dict() for p in products]
+        stmt = sa_pg.insert(TempProduct).values(values)
+        conn.execute(stmt)
+
+    def upsert_marketprovider_products_from_temp_table(self, conn: Connection):
+        # mark main image as downloaded in product temp table in case URL did not change
+        # and image has been already downloaded according to product persistent table
+        stmt_main_image = (
+            sa.select(TempProduct.id)
+            .join(Product, Product.id == TempProduct.id)
+            .filter(
+                sa.and_(
+                    TempProduct.main_image_url == Product.main_image_url,
+                    Product.main_image_downloaded == True
+                )
+            ).subquery()
+        )
+        stmt_main_image_update = (
+            sa.update(TempProduct)
+            .where(TempProduct.id.in_(sa.select(stmt_main_image)))
+            .values({TempProduct.main_image_downloaded.key: True})
+        )
+        conn.execute(stmt_main_image_update)
+
+        # upsert products from temp table
+        cols = [c.name for c in Product.__table__.columns]
+        insert_stmt = sa_pg.insert(Product).from_select(cols, sa.select(TempProduct))
+        index_elements = [Product.id]
+        stmt = (
+            insert_stmt.on_conflict_do_update(
+                index_elements=index_elements,
+                set_=Product.get_update_set_for_upsert(insert_stmt, index_elements)
+            )
+        )
+        conn.execute(stmt)
+        conn.connection.commit()
+
+    def get_marketprovider_product_files_to_download(self):
+        stmt = (
+            sa.select(Product.id, Product.main_image_url)
+            .filter(
+                Product.main_image_downloaded == False,
+                Product.main_image_url.isnot(None)
+            )
+        )
+        return self.session.execute(stmt).all()
+
+    def update_marketprovider_product_main_image_relpath(self, id_: int, relpath: str):
+        stmt = (
+            sa.update(Product)
+            .filter(Product.id == id_)
+            .values({
+                Product.main_image_relpath: relpath,
+                Product.main_image_downloaded: True
+            })
+        )
         self.session.execute(stmt)
         self.session.commit()

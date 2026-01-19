@@ -1,5 +1,5 @@
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
@@ -12,6 +12,8 @@ DATABASE_URL = os.getenv(
 )
 
 Base = declarative_base()
+
+metadata = MetaData()
 
 engine = create_engine(
     DATABASE_URL,
