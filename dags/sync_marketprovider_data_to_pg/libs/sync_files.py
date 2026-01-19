@@ -1,5 +1,6 @@
 import logging
 import os
+import posixpath
 import urllib.parse as url_parse
 
 import requests
@@ -35,7 +36,7 @@ def download_files(sftp_client: SFTPClient):
         with requests.get(main_image_url, stream=True) as resp:
             resp.raise_for_status()
             size = int(resp.headers.get('content-length', 0))
-            remote_relpath = os.posixpath.join(subdir_name, f'main_image{ext}')
+            remote_relpath = posixpath.join(subdir_name, f'main_image{ext}')
             sftp_client.putfo(resp.raw, remote_relpath, size)
         db_broker.update_marketprovider_product_main_image_relpath(product_id, remote_relpath)
 
