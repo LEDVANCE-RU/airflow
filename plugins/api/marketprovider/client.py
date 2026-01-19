@@ -49,6 +49,7 @@ class MarketProviderApiClient:
             return self._paginate_requests(params)
         else:
             resp = params.method(**params.request_args)
+            resp.raise_for_response()
             return resp.json()
 
     def _paginate_requests(self, params: _RequestParams):
@@ -56,6 +57,7 @@ class MarketProviderApiClient:
         while True:
             params.body['offset'] = params.body['limit'] * page
             resp = params.method(**params.request_args)
+            resp.raise_for_response()
             result = resp.json()
             if result.get('items'):
                 page += 1
