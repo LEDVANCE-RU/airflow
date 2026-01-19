@@ -1,7 +1,8 @@
 import sqlalchemy as sa
+from sqlalchemy import Table
 
 from db_model.constants import MARKETPROVIDER_SCHEMA
-from db_model.main import Base
+from db_model.main import Base, metadata
 
 
 class AbstractBaseModel(Base):
@@ -12,11 +13,11 @@ class AbstractBaseModel(Base):
         return {c.key: getattr(self, c.key) for c in sa.inspect(self).mapper.column_attrs}
 
     @classmethod
-    def get_update_set_for_upsert(cls, insert_stmt, index_elements: list):
+    def get_update_set_for_upsert(cls, insert_stmt, exclude_cols: list):
         return {
             c.key: getattr(insert_stmt.excluded, c.key)
             for c in sa.inspect(cls).mapper.column_attrs
-            if c not in index_elements
+            if c not in exclude_cols
         }
 
 
@@ -29,7 +30,7 @@ class Category(AbstractBaseModel):
     parent_id = sa.Column(sa.Integer, index=True)
     status = sa.Column(sa.String)
 
-    synced_at = sa.Column(sa.TIMESTAMP(timezone=True))
+    synced_at = sa.Column(sa.DateTime(timezone=True))
 
 
 class Product(AbstractBaseModel):
@@ -59,7 +60,22 @@ class Product(AbstractBaseModel):
     color_rendering_index = sa.Column(sa.String)
     lifespan = sa.Column(sa.Numeric)
     warranty_period = sa.Column(sa.Numeric)
-    created_at = sa.Column(sa.TIMESTAMP(timezone=True))
-    updated_at = sa.Column(sa.TIMESTAMP(timezone=True))
+    created_at = sa.Column(sa.DateTime(timezone=True))
+    updated_at = sa.Column(sa.DateTime(timezone=True))
 
-    synced_at = sa.Column(sa.TIMESTAMP(timezone=True))
+    synced_at = sa.Column(sa.DateTime(timezone=True))
+    main_image_downloaded = sa.Column(sa.Boolean, default=False, index=True)
+    main_image_relpath = sa.Column(sa.String)
+
+
+temp_products_table = Table(
+    'temp_products',
+    metadata,
+    *[sa.Column(c.name, c.type, primary_key=c.primary_key) for c in Product.__table__.columns],
+    prefixes=['TEMPORARY'],
+    postgresql_on_commit='DROP'
+)
+
+
+class TempProduct(AbstractBaseModel):
+    __table__ = temp_products_table
