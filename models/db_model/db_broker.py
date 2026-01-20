@@ -394,14 +394,14 @@ class DbBroker(metaclass=AutoRollbackMeta):
             .filter(
                 sa.and_(
                     TempProduct.main_image_url == Product.main_image_url,
-                    Product.main_image_downloaded == True
+                    Product.main_image_synced == True
                 )
             ).subquery()
         )
         stmt_main_image_update = (
             sa.update(TempProduct)
             .where(TempProduct.id.in_(sa.select(stmt_main_image)))
-            .values({TempProduct.main_image_downloaded.key: True})
+            .values({TempProduct.main_image_synced.key: True})
         )
         conn.execute(stmt_main_image_update)
 
@@ -412,7 +412,7 @@ class DbBroker(metaclass=AutoRollbackMeta):
         stmt = (
             insert_stmt.on_conflict_do_update(
                 index_elements=index_elements,
-                set_=Product.get_update_set_for_upsert(insert_stmt, index_elements)
+                set_=Product.get_update_set_for_upsert(insert_stmt, index_elements + [Product.main_image_relpath])
             )
         )
         conn.execute(stmt)
@@ -422,7 +422,7 @@ class DbBroker(metaclass=AutoRollbackMeta):
         stmt = (
             sa.select(Product.id, Product.main_image_url)
             .filter(
-                Product.main_image_downloaded == False,
+                Product.main_image_synced == False,
                 Product.main_image_url.isnot(None)
             )
         )
@@ -434,7 +434,7 @@ class DbBroker(metaclass=AutoRollbackMeta):
             .filter(Product.id == id_)
             .values({
                 Product.main_image_relpath: relpath,
-                Product.main_image_downloaded: True
+                Product.main_image_synced: True
             })
         )
         self.session.execute(stmt)

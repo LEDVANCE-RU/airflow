@@ -64,7 +64,7 @@ class Product(AbstractBaseModel):
     updated_at = sa.Column(sa.DateTime(timezone=True))
 
     synced_at = sa.Column(sa.DateTime(timezone=True))
-    main_image_downloaded = sa.Column(sa.Boolean, default=False, index=True)
+    main_image_synced = sa.Column(sa.Boolean, default=False, index=True)
     main_image_relpath = sa.Column(sa.String)
 
 

@@ -45,7 +45,7 @@ def sync_products(marketprovider_api_token: str, category_ids: list):
                 updated_at = datetime.fromisoformat(item[ProductField.UPDATED_AT])
                 if updated_at > last_sync_dt:
                     product_ids.append(item[ProductField.ID])
-            products_full_batches_num = ceil(PRODUCTS_SHORT_LIMIT / PRODUCTS_FULL_LIMIT)
+            products_full_batches_num = ceil(len(product_ids) / PRODUCTS_FULL_LIMIT)
             if not product_ids:
                 continue
             for n in range(0, products_full_batches_num):
@@ -89,7 +89,7 @@ def _sync_products_full_data(mp: MarketProviderApiClient, db_broker: DbBroker,
                 created_at=datetime.fromisoformat(p[ProductField.CREATED_AT]),
                 updated_at=datetime.fromisoformat(p[ProductField.UPDATED_AT]),
                 synced_at=current_sync_dt,
-                main_image_downloaded=False
+                main_image_synced=False
             ) for p in products_full['items']
         ]
         db_broker.upload_marketprovider_temp_products(conn, products)
