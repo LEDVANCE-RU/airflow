@@ -55,7 +55,6 @@ class ProductAttrName:
 
     CERT_037_NUM = (ProductAttrGroupName.CERT_037, 'Номер декларации 037')
 
-    SERIES_L4L = (ProductAttrGroupName.LAMP_HOUSING, 'Серия L4L')
     BULB = (ProductAttrGroupName.LAMP_HOUSING, 'Колба')
     HOUSING_MATERIAL = (ProductAttrGroupName.LAMP_HOUSING, 'Материал корпуса')
     LAMP_TYPE = (ProductAttrGroupName.LAMP_HOUSING, 'Вид лампы')
@@ -66,6 +65,7 @@ class ProductAttrName:
 
     MARKETING_NAME = (ProductAttrGroupName.MARKETING, 'Маркетинговое наименование')
     MARKETING_SERIES = (ProductAttrGroupName.MARKETING, 'Маркетинговая серия')
+    SERIES_L4L = (ProductAttrGroupName.MARKETING, 'Серия L4L')
 
     POWER = (ProductAttrGroupName.LAMP_ELECTRICAL_CHARACTERISTICS, 'Мощность, Вт')
     VOLTAGE = (ProductAttrGroupName.LAMP_ELECTRICAL_CHARACTERISTICS, 'Входное напряжение AC, В')
