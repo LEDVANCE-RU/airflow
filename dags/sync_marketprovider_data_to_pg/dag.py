@@ -11,10 +11,13 @@ from constants import TZ_MSK, TZ_UTC
 def _get_mp_api_token():
     return Variable.get('marketprovider_api_token')
 
-
 def _get_mp_product_category_ids():
     value = Variable.get('marketprovider_product_category_ids')
     return json.loads(value)
+
+def _get_sftp_client():
+    sftp_hook = SFTPHook('sftp_marketprovider')
+    return sftp_hook.get_conn()
 
 
 with DAG(
@@ -51,13 +54,19 @@ with DAG(
         db_broker.set_runtime_state(LAST_SYNC_KEY, datetime.fromisoformat(dt), commit=True)
 
     @task
+    def sync_main_data():
+        from sync_marketprovider_data_to_pg.libs.sync_files import upload_data
+
+        sftp_client = _get_sftp_client()
+        upload_data(sftp_client)
+
+    @task
     def sync_main_images():
-        from sync_marketprovider_data_to_pg.libs.sync_files import download_files
+        from sync_marketprovider_data_to_pg.libs.sync_files import upload_files
 
-        sftp_hook = SFTPHook('sftp_marketprovider')
-        sftp_client = sftp_hook.get_conn()
-
-        download_files(sftp_client)
+        sftp_client = _get_sftp_client()
+        upload_files(sftp_client)
 
     dt = get_current_datetime_task()
-    dt >> sync_categories_task() >> sync_products_task() >> write_last_sync_datetime_task(dt) >> sync_main_images()
+    dt >> sync_categories_task() >> sync_products_task() >> write_last_sync_datetime_task(dt) \
+        >> (sync_main_images(), sync_main_data())

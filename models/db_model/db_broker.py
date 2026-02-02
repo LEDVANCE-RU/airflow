@@ -386,7 +386,7 @@ class DbBroker(metaclass=AutoRollbackMeta):
         conn.execute(stmt)
 
     def upsert_marketprovider_products_from_temp_table(self, conn: Connection):
-        # mark main image as downloaded in product temp table in case URL did not change
+        # mark main image as synced in product temp table in case URL did not change
         # and image has been already downloaded according to product persistent table
         stmt_main_image = (
             sa.select(TempProduct.id)
@@ -405,7 +405,7 @@ class DbBroker(metaclass=AutoRollbackMeta):
         )
         conn.execute(stmt_main_image_update)
 
-        # upsert products from temp table
+        # upsert products from temp table (excluding column for main image relative path)
         cols = [c.name for c in Product.__table__.columns]
         insert_stmt = sa_pg.insert(Product).from_select(cols, sa.select(TempProduct))
         index_elements = [Product.id]
@@ -439,3 +439,7 @@ class DbBroker(metaclass=AutoRollbackMeta):
         )
         self.session.execute(stmt)
         self.session.commit()
+
+    def get_marketprovider_products(self, return_stmt: bool = False):
+        stmt = sa.select(Product)
+        return stmt if return_stmt else self.session.execute(stmt).all()

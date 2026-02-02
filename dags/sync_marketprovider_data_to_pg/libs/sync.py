@@ -1,13 +1,12 @@
 import logging
 from datetime import datetime
-from math import ceil
 
 from api.marketprovider.client import MarketProviderApiClient
 from api.marketprovider.mapping import CategoryField, ProductField, ProductAttrName
 from constants import TZ_UTC
 from db_model.db_broker import DbBroker
-from db_model.marketprovider.model import Category, Product, TempProduct
-from sync_marketprovider_data_to_pg.libs.constants import LAST_SYNC_KEY, PRODUCTS_FULL_LIMIT, PRODUCTS_SHORT_LIMIT
+from db_model.marketprovider.model import Category, TempProduct
+from sync_marketprovider_data_to_pg.libs.constants import LAST_SYNC_KEY, PRODUCTS_FULL_LIMIT
 
 
 def sync_categories(marketprovider_api_token):
@@ -38,26 +37,16 @@ def sync_products(marketprovider_api_token: str, category_ids: list):
     last_sync_dt = last_sync.value_ts if last_sync else datetime(2000, 1, 1, tzinfo=TZ_UTC)
 
     for category_id in category_ids:
-        for batch in mp.get_products_short(category_id, paginate=True, limit=PRODUCTS_SHORT_LIMIT):
-            product_ids = []
+        for batch in mp.get_products_full(category_id, updated_since=last_sync_dt,
+                                          paginate=True, limit=PRODUCTS_FULL_LIMIT):
             items = batch[ProductField.ITEMS]
-            for item in items:
-                updated_at = datetime.fromisoformat(item[ProductField.UPDATED_AT])
-                if updated_at > last_sync_dt:
-                    product_ids.append(item[ProductField.ID])
-            products_full_batches_num = ceil(len(product_ids) / PRODUCTS_FULL_LIMIT)
-            if not product_ids:
-                continue
-            for n in range(0, products_full_batches_num):
-                start_idx = n * PRODUCTS_FULL_LIMIT
-                end_idx = (n + 1) * PRODUCTS_FULL_LIMIT
-                _sync_products_full_data(mp, db_broker, category_id, product_ids[start_idx:end_idx])
+            _sync_products_batch(items)
+            logging.info('%s products of category ID %s synced.', len(items), category_id)
 
 
-def _sync_products_full_data(mp: MarketProviderApiClient, db_broker: DbBroker,
-                             category_id: int, product_ids: list[int]):
+def _sync_products_batch(items: list):
     current_sync_dt = datetime.now(TZ_UTC)
-    products_full = mp.get_products_full(category_id, product_ids=product_ids, limit=PRODUCTS_FULL_LIMIT)
+    db_broker = DbBroker()
     with db_broker.session.bind.begin() as conn:
         db_broker.create_temp_products_table(conn)
         products = [
@@ -73,9 +62,9 @@ def _sync_products_full_data(mp: MarketProviderApiClient, db_broker: DbBroker,
                 inner_code = _get_attr_value(p, ProductAttrName.INNER_CODE),
                 vendor_code = _get_attr_value(p, ProductAttrName.VENDOR_CODE),
                 ean_upc = _get_attr_value(p, ProductAttrName.EAN_UPC),
-                series_l4l=_get_attr_value(p, ProductAttrName.SERIES_L4L),
                 marketing_name=_get_attr_value(p, ProductAttrName.MARKETING_NAME),
                 marketing_series=_get_attr_value(p, ProductAttrName.MARKETING_SERIES),
+                series_l4l=_get_attr_value(p, ProductAttrName.SERIES_L4L),
                 bulb=_get_attr_value(p, ProductAttrName.BULB),
                 housing_material=_get_attr_value(p, ProductAttrName.HOUSING_MATERIAL),
                 lamp_type=_get_attr_value(p, ProductAttrName.LAMP_TYPE),
@@ -98,11 +87,10 @@ def _sync_products_full_data(mp: MarketProviderApiClient, db_broker: DbBroker,
                 updated_at=datetime.fromisoformat(p[ProductField.UPDATED_AT]),
                 synced_at=current_sync_dt,
                 main_image_synced=False
-            ) for p in products_full['items']
+            ) for p in items
         ]
         db_broker.upload_marketprovider_temp_products(conn, products)
         db_broker.upsert_marketprovider_products_from_temp_table(conn)
-        logging.info('%s products of category ID %s synced.', len(products), category_id)
 
 
 def _get_attr_value(item: dict, group_attr_name: tuple):

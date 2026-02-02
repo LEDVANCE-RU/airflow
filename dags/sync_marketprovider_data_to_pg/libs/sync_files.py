@@ -1,8 +1,10 @@
 import logging
 import os
 import posixpath
+import tempfile
 import urllib.parse as url_parse
 
+import pandas
 import requests
 from paramiko.sftp_client import SFTPClient
 
@@ -11,12 +13,22 @@ from db_model.marketprovider.model import Product
 from sync_marketprovider_data_to_pg.libs.constants import DEST_FILES_ROOT_DIRNAME
 
 
-def download_files(sftp_client: SFTPClient):
+def upload_data(sftp_client: SFTPClient):
+    db_broker = DbBroker()
+    stmt = db_broker.get_marketprovider_products(return_stmt=True)
+    df = pandas.read_sql(stmt, db_broker.session.connection())
+    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=True) as tmp:
+        df.to_excel(tmp.name, index=False, sheet_name='Products')
+        temp_filepath = tmp.name
+        logging.info(f"Product data exported to '%s'", temp_filepath)
+        remote_filepath = 'export.xlsx'
+        sftp_client.put(temp_filepath, remote_filepath)
+        logging.info("Product data uploaded to %s on SFTP-server", remote_filepath)
+
+
+def upload_files(sftp_client: SFTPClient):
     # check if directory for files exists
-    try:
-        sftp_client.stat(DEST_FILES_ROOT_DIRNAME)
-    except IOError:
-        sftp_client.mkdir(DEST_FILES_ROOT_DIRNAME)
+    _mkdir_if_not_exists(sftp_client, DEST_FILES_ROOT_DIRNAME)
     sftp_client.chdir(DEST_FILES_ROOT_DIRNAME)
 
     db_broker = DbBroker()
@@ -25,10 +37,7 @@ def download_files(sftp_client: SFTPClient):
         subdir_name = str(product_id)
         main_image_url = getattr(f, Product.main_image_url.key)
         # create subdir if not exists
-        try:
-            sftp_client.stat(subdir_name)
-        except IOError:
-            sftp_client.mkdir(subdir_name)
+        _mkdir_if_not_exists(sftp_client, subdir_name)
         parsed_url = url_parse.urlsplit(main_image_url)
         query = url_parse.parse_qs(parsed_url.query)
         remote_filepath = url_parse.unquote(query['path'][0])
@@ -42,3 +51,10 @@ def download_files(sftp_client: SFTPClient):
 
         size_kb = size / 1024
         logging.info('Main image (%.1f KB) of product %s synced to SFTP', size_kb, product_id)
+
+
+def _mkdir_if_not_exists(sftp_client: SFTPClient, dir_relpath: str):
+    try:
+        sftp_client.stat(dir_relpath)
+    except IOError:
+        sftp_client.mkdir(dir_relpath)

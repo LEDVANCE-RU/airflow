@@ -1,6 +1,8 @@
 import json
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Callable
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -83,10 +85,16 @@ class MarketProviderApiClient:
         )
         return self._send_request(params)
 
-    def get_products_full(self, category_id: int, product_ids: list[int] = None, **kwargs):
-        body = {}
+    def get_products_full(self, category_id: int, updated_since: datetime = None,
+                          product_ids: list[int] = None, **kwargs):
+        updated_since_str = updated_since.astimezone(ZoneInfo('UTC')).replace(tzinfo=None).isoformat(timespec='seconds')
+
+        filters = {}
+        body = {'filters': filters}
+        if updated_since:
+            filters['updatedAt']= {'from': updated_since_str}
         if product_ids:
-            body['filters'] = {'productIds': product_ids}
+            filters['productIds'] = product_ids
         params = _RequestParams(
             method = requests.post,
             endpoint=f'categories/{category_id}/products-full-info',
