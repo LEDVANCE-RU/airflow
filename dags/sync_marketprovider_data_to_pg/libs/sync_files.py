@@ -17,13 +17,25 @@ def upload_data(sftp_client: SFTPClient):
     db_broker = DbBroker()
     stmt = db_broker.get_marketprovider_products(return_stmt=True)
     df = pandas.read_sql(stmt, db_broker.session.connection())
-    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=True) as tmp:
-        df.to_excel(tmp.name, index=False, sheet_name='Products')
+
+    # timezone-aware objects are not supported by Excel,
+    # thus convert all datetime values with tz to UTC and then remove timezone info
+    for col in df.select_dtypes(include=['datetimetz']).columns:
+        if df[col].dt.tz is not None:
+            df[col] = df[col].dt.tz_convert('UTC').dt.tz_localize(None)
+
+    with tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False) as tmp:
         temp_filepath = tmp.name
+
+    try:
+        df.to_excel(tmp.name, index=False, sheet_name='Products')
         logging.info(f"Product data exported to '%s'", temp_filepath)
         remote_filepath = 'export.xlsx'
         sftp_client.put(temp_filepath, remote_filepath)
         logging.info("Product data uploaded to %s on SFTP-server", remote_filepath)
+    finally:
+        if os.path.exists(temp_filepath):
+            os.remove(temp_filepath)
 
 
 def upload_files(sftp_client: SFTPClient):
