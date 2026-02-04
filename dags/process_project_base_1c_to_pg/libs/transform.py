@@ -23,6 +23,13 @@ def transform_project_base(in_fp: str, out_dp: str, src_map: dict, dest_map: dic
     dest_columns = list(dest_map.keys())
     df = df.reindex(columns=dest_columns)
 
+    if 'tender' in df.columns:
+        bool_map = {
+            'Да': True,
+            'Нет': False
+        }
+        df['tender'] = df['tender'].replace(bool_map)
+
     export_fp = os.path.join(out_dp, f"{uuid.uuid4().hex}_{file_key}.csv")
     df.to_csv(
         export_fp,
