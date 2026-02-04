@@ -54,11 +54,11 @@ with DAG(
         db_broker.set_runtime_state(LAST_SYNC_KEY, datetime.fromisoformat(dt), commit=True)
 
     @task
-    def sync_main_data():
-        from sync_marketprovider_data_to_pg.libs.sync_files import upload_data
+    def sync_export_file():
+        from sync_marketprovider_data_to_pg.libs.sync_files import upload_export_file
 
         sftp_client = _get_sftp_client()
-        upload_data(sftp_client)
+        upload_export_file(sftp_client)
 
     @task
     def sync_main_images():
@@ -69,4 +69,4 @@ with DAG(
 
     dt = get_current_datetime_task()
     dt >> sync_categories_task() >> sync_products_task() >> write_last_sync_datetime_task(dt) \
-        >> (sync_main_images(), sync_main_data())
+        >> (sync_main_images(), sync_export_file())

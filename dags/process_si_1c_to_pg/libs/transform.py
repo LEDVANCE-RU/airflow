@@ -48,6 +48,9 @@ def transform_data(in_fp: str, out_dp: str, src_map: dict, dest_map: dict, file_
     if 'ean' in df.columns:
         df['ean'] = df['ean'].str.strip()
 
+    if 'customer_id' in df.columns:
+        df['customer_id'] = df['customer_id'].str.replace('00-', '', regex=False).str.strip()
+
     for col, field in dest_map.items():
         if 'INTEGER' in field.type:
             df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')

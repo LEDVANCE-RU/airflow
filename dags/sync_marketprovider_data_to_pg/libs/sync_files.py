@@ -13,7 +13,7 @@ from db_model.marketprovider.model import Product
 from sync_marketprovider_data_to_pg.libs.constants import DEST_FILES_ROOT_DIRNAME
 
 
-def upload_data(sftp_client: SFTPClient):
+def upload_export_file(sftp_client: SFTPClient):
     db_broker = DbBroker()
     stmt = db_broker.get_marketprovider_products(return_stmt=True)
     df = pandas.read_sql(stmt, db_broker.session.connection())
@@ -32,7 +32,7 @@ def upload_data(sftp_client: SFTPClient):
         logging.info(f"Product data exported to '%s'", temp_filepath)
         remote_filepath = 'export.xlsx'
         sftp_client.put(temp_filepath, remote_filepath)
-        logging.info("Product data uploaded to %s on SFTP-server", remote_filepath)
+        logging.info("Product data uploaded to '%s' on SFTP-server", remote_filepath)
     finally:
         if os.path.exists(temp_filepath):
             os.remove(temp_filepath)
