@@ -19,7 +19,7 @@ def get_stock_report_df(pg_conn_id: str) -> pd.DataFrame:
     conn.commit()
 
     logging.info("Reading stock report data...")
-    report_df = pd.read_sql_table('si_result', conn, 'si')
+    report_df = pd.read_sql_table('si_result', pg_hook.get_uri(), 'si')
     logging.info("Successfully fetched %s rows.", len(report_df))
     
     return report_df
