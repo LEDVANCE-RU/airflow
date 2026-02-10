@@ -4,6 +4,7 @@ from datetime import datetime
 from airflow import DAG
 from airflow.providers.sftp.hooks.sftp import SFTPHook
 from airflow.sdk import task, Variable
+from airflow.utils.trigger_rule import TriggerRule
 
 from constants import TZ_MSK, TZ_UTC
 
@@ -54,19 +55,25 @@ with DAG(
         db_broker.set_runtime_state(LAST_SYNC_KEY, datetime.fromisoformat(dt), commit=True)
 
     @task
-    def sync_export_file():
-        from sync_marketprovider_data_to_pg.libs.sync_files import upload_export_file
-
-        sftp_client = _get_sftp_client()
-        upload_export_file(sftp_client)
-
-    @task
     def sync_main_images():
         from sync_marketprovider_data_to_pg.libs.sync_files import upload_files
 
         sftp_client = _get_sftp_client()
-        upload_files(sftp_client)
+        try:
+            upload_files(sftp_client)
+        finally:
+            sftp_client.close()
+
+    @task(trigger_rule=TriggerRule.ALL_DONE)
+    def sync_export_file():
+        from sync_marketprovider_data_to_pg.libs.sync_files import upload_export_file
+
+        sftp_client = _get_sftp_client()
+        try:
+            upload_export_file(sftp_client)
+        finally:
+            sftp_client.close()
 
     dt = get_current_datetime_task()
     dt >> sync_categories_task() >> sync_products_task() >> write_last_sync_datetime_task(dt) \
-        >> (sync_main_images(), sync_export_file())
+        >> sync_main_images() >> sync_export_file()

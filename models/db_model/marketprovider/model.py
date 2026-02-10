@@ -37,11 +37,19 @@ class Product(AbstractBaseModel):
     __tablename__ = "products"
 
     id = sa.Column(sa.Integer, primary_key=True)
+    created_at = sa.Column(sa.DateTime(timezone=True))
+    updated_at = sa.Column(sa.DateTime(timezone=True))
+    synced_at = sa.Column(sa.DateTime(timezone=True))
+
     status_id = sa.Column(sa.Integer)
     category_id = sa.Column(sa.Integer, index=True)
     name = sa.Column(sa.String)
     brand_name = sa.Column(sa.String)
+
     main_image_url = sa.Column(sa.String)
+    main_image_synced = sa.Column(sa.Boolean, default=False, index=True)
+    main_image_relpath = sa.Column(sa.String)
+
     predecessor = sa.Column(sa.String)
     warehouse_status = sa.Column(sa.String)
     lifecycle_status = sa.Column(sa.String)
@@ -60,7 +68,7 @@ class Product(AbstractBaseModel):
     diffuser_type = sa.Column(sa.String)
     mounting_type = sa.Column(sa.String)
     power = sa.Column(sa.Numeric)
-    voltage = sa.Column(sa.Text)
+    voltage = sa.Column(sa.String)
     color_temperature = sa.Column(sa.String)
     luminous_flux = sa.Column(sa.Numeric)
     dimmable = sa.Column(sa.String)
@@ -71,8 +79,6 @@ class Product(AbstractBaseModel):
     warranty_period = sa.Column(sa.Numeric)
     cert_004_num = sa.Column(sa.String)
     cert_037_num = sa.Column(sa.String)
-    created_at = sa.Column(sa.DateTime(timezone=True))
-    updated_at = sa.Column(sa.DateTime(timezone=True))
 
     pce_in_indivisible_pkg = sa.Column(sa.Numeric)
     order_multiple_qty = sa.Column(sa.Numeric)
@@ -94,10 +100,6 @@ class Product(AbstractBaseModel):
     width = sa.Column(sa.Numeric)
     height = sa.Column(sa.Numeric)
     weight = sa.Column(sa.Numeric)
-
-    synced_at = sa.Column(sa.DateTime(timezone=True))
-    main_image_synced = sa.Column(sa.Boolean, default=False, index=True)
-    main_image_relpath = sa.Column(sa.String)
 
 
 temp_products_table = Table(
