@@ -40,6 +40,12 @@ class ProductAttrGroupName(StrEnum):
     PROTECTION = 'Защита'
     QUALITY = 'Качество'
     WARRANTY = 'Гарантия'
+    MULTIPLICITY = 'Кратность'
+    LOGISTICS = 'Логистика'
+    DIMENSIONS_CIRCLE = 'Габариты изделия (кругл)'
+    DIMENSIONS = 'Габариты изделия'
+
+    MARKETING_FILES = 'Маркетинг [файлы]'
 
 
 class ProductAttrName:
@@ -60,6 +66,7 @@ class ProductAttrName:
     LAMP_TYPE = (ProductAttrGroupName.LAMP_HOUSING, 'Вид лампы')
     LAMP_CAP = (ProductAttrGroupName.LAMP_HOUSING, 'Цоколь')
     HOUSING_COLOR = (ProductAttrGroupName.LAMP_HOUSING, 'Цвет корпуса')
+    DIFFUSER_TYPE = (ProductAttrGroupName.LAMP_HOUSING, 'Тип рассеивателя')
 
     MOUNTING_TYPE = (ProductAttrGroupName.LIGHT_HOUSING, 'Способ монтажа')
 
@@ -77,9 +84,41 @@ class ProductAttrName:
     COLOR_RENDERING_INDEX = (ProductAttrGroupName.OPTICAL_CHARACTERISTICS, 'Индекс цветопередачи Ra, ≥')
 
     PREDECESSOR = (ProductAttrGroupName.PRICE_STATUS, 'Предшественник')
+    WAREHOUSE_STATUS = (ProductAttrGroupName.PRICE_STATUS, 'Складской статус')
+    LIFECYCLE_STATUS = (ProductAttrGroupName.PRICE_STATUS, 'Статус жизненного цикла')
 
     IP_CLASS = (ProductAttrGroupName.PROTECTION, 'Степень защиты IP')
 
     LIFESPAN = (ProductAttrGroupName.QUALITY, 'Срок службы, ч')
 
     WARRANTY_PERIOD = (ProductAttrGroupName.WARRANTY, 'Гарантия, лет')
+
+    PCE_IN_INDIVISIBLE_PKG = (ProductAttrGroupName.MULTIPLICITY, 'Количество в неделимой упаковке, шт')
+    ORDER_MULTIPLE_QTY = (ProductAttrGroupName.MULTIPLICITY, 'Кратность заказа, шт')
+    ORDER_MIN_QTY = (ProductAttrGroupName.MULTIPLICITY, 'Минимальное кол-во к отгрузке, шт')
+
+    PCE_ON_PALLET = (ProductAttrGroupName.LOGISTICS, 'Количество шт на паллете, шт')
+    INDIVIDUAL_PKG_LENGTH = (ProductAttrGroupName.LOGISTICS, 'Длина индивидуальной упаковки, мм')
+    INDIVIDUAL_PKG_HEIGHT = (ProductAttrGroupName.LOGISTICS, 'Высота индивидуальной упаковки, мм')
+    INDIVIDUAL_PKG_WIDTH = (ProductAttrGroupName.LOGISTICS, 'Ширина индивидуальной упаковки, мм')
+    INDIVIDUAL_PKG_WEIGHT = (ProductAttrGroupName.LOGISTICS,  'Масса в индивидуальной упаковке, г')
+    TRANSPORT_PKG_LENGTH = (ProductAttrGroupName.LOGISTICS, 'Длина транспортной упаковки (EAN40), мм')
+    TRANSPORT_PKG_HEIGHT = (ProductAttrGroupName.LOGISTICS, 'Высота транспортной упаковки (EAN40), мм')
+    TRANSPORT_PKG_WIDTH = (ProductAttrGroupName.LOGISTICS, 'Ширина транспортной упаковки (EAN40), мм')
+    TRANSPORT_PKG_WEIGHT = (ProductAttrGroupName.LOGISTICS,  'Масса транспортной упаковки (EAN40), г')
+    PCE_IN_TRANSPORT_PKG = (ProductAttrGroupName.LOGISTICS, 'Количество в транспортной упаковке (EAN40)')
+
+    CIRCLE_DIAMETER = (ProductAttrGroupName.DIMENSIONS_CIRCLE, 'Диаметр, мм')
+    CIRCLE_HEIGHT = (ProductAttrGroupName.DIMENSIONS_CIRCLE, 'Высота, мм')
+    CIRCLE_WEIGHT = (ProductAttrGroupName.DIMENSIONS_CIRCLE, 'Масса нетто, г')
+
+    DIAMETER = (ProductAttrGroupName.DIMENSIONS, 'Диаметр, мм')
+    WIDTH = (ProductAttrGroupName.DIMENSIONS, 'Ширина, мм')
+    HEIGHT = (ProductAttrGroupName.DIMENSIONS, 'Высота, мм')
+    LENGTH = (ProductAttrGroupName.DIMENSIONS, 'Длина, мм')
+    WEIGHT = (ProductAttrGroupName.DIMENSIONS, 'Масса нетто, г')
+
+    PRESENTATION = (ProductAttrGroupName.MARKETING_FILES, 'Презентация')
+    LEAFLET = (ProductAttrGroupName.MARKETING_FILES, 'Листовка')
+    PASSPORTS = (ProductAttrGroupName.MARKETING_FILES, 'Паспорт')
+

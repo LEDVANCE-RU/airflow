@@ -58,6 +58,8 @@ def _sync_products_batch(items: list):
                 brand_name=_get_attr_value(p, ProductAttrName.BRAND_NAME),
                 main_image_url=_get_attr_value(p, ProductAttrName.MAIN_IMAGE),
                 predecessor=_get_attr_value(p, ProductAttrName.PREDECESSOR),
+                warehouse_status=_get_attr_value(p, ProductAttrName.WAREHOUSE_STATUS),
+                lifecycle_status=_get_attr_value(p, ProductAttrName.LIFECYCLE_STATUS),
                 origin_country=_get_attr_value(p, ProductAttrName.ORIGIN_COUNTRY),
                 inner_code = _get_attr_value(p, ProductAttrName.INNER_CODE),
                 vendor_code = _get_attr_value(p, ProductAttrName.VENDOR_CODE),
@@ -70,6 +72,7 @@ def _sync_products_batch(items: list):
                 lamp_type=_get_attr_value(p, ProductAttrName.LAMP_TYPE),
                 lamp_cap=_get_attr_value(p, ProductAttrName.LAMP_CAP),
                 housing_color=_get_attr_value(p, ProductAttrName.HOUSING_COLOR),
+                diffuser_type=_get_attr_value(p, ProductAttrName.DIFFUSER_TYPE),
                 mounting_type=_get_attr_value(p, ProductAttrName.MOUNTING_TYPE),
                 power=_get_attr_value(p, ProductAttrName.POWER),
                 voltage=_get_attr_value(p, ProductAttrName.VOLTAGE),
@@ -83,6 +86,31 @@ def _sync_products_batch(items: list):
                 warranty_period=_get_attr_value(p, ProductAttrName.WARRANTY_PERIOD),
                 cert_004_num=_get_attr_value(p, ProductAttrName.CERT_004_NUM),
                 cert_037_num=_get_attr_value(p, ProductAttrName.CERT_037_NUM),
+
+                pce_in_indivisible_pkg=_get_attr_value(p, ProductAttrName.PCE_IN_INDIVISIBLE_PKG),
+                order_multiple_qty=_get_attr_value(p, ProductAttrName.ORDER_MULTIPLE_QTY),
+                order_min_qty=_get_attr_value(p, ProductAttrName.ORDER_MIN_QTY),
+
+                pce_on_pallet=_get_attr_value(p, ProductAttrName.PCE_ON_PALLET),
+                individual_pkg_length=_get_attr_value(p, ProductAttrName.INDIVIDUAL_PKG_LENGTH),
+                individual_pkg_height=_get_attr_value(p, ProductAttrName.INDIVIDUAL_PKG_HEIGHT),
+                individual_pkg_width=_get_attr_value(p, ProductAttrName.INDIVIDUAL_PKG_WIDTH),
+                individual_pkg_weight=_get_attr_value(p, ProductAttrName.INDIVIDUAL_PKG_WEIGHT),
+                transport_pkg_length=_get_attr_value(p, ProductAttrName.TRANSPORT_PKG_LENGTH),
+                transport_pkg_height=_get_attr_value(p, ProductAttrName.TRANSPORT_PKG_HEIGHT),
+                transport_pkg_width=_get_attr_value(p, ProductAttrName.TRANSPORT_PKG_WIDTH),
+                transport_pkg_weight=_get_attr_value(p, ProductAttrName.TRANSPORT_PKG_WEIGHT),
+                pce_in_transport_pkg=_get_attr_value(p, ProductAttrName.PCE_IN_TRANSPORT_PKG),
+
+                diameter=_get_attr_value(p, ProductAttrName.CIRCLE_DIAMETER)
+                         or _get_attr_value(p, ProductAttrName.DIAMETER),
+                length=_get_attr_value(p, ProductAttrName.LENGTH),
+                width=_get_attr_value(p, ProductAttrName.WIDTH),
+                height=_get_attr_value(p, ProductAttrName.CIRCLE_HEIGHT)
+                       or _get_attr_value(p, ProductAttrName.HEIGHT),
+                weight=_get_attr_value(p, ProductAttrName.CIRCLE_WEIGHT)
+                       or _get_attr_value(p, ProductAttrName.WEIGHT),
+
                 created_at=datetime.fromisoformat(p[ProductField.CREATED_AT]),
                 updated_at=datetime.fromisoformat(p[ProductField.UPDATED_AT]),
                 synced_at=current_sync_dt,
