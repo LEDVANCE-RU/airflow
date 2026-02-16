@@ -302,7 +302,7 @@ select
     sum(available_stock) as "В наличии",
     sum(shipped_stock) as "Отгружается",
     sum(reserved_stock) as "В резерве",
-    sum(free_stock) as "В Доступно",
+    sum(free_stock) as "Доступно",
     sum(backorder_stock) as "Ожидается в резерве",
     sum(supply_needed_stock) as "К обеспечению",
     sum(transit_1_10_d) as "1-10 d",
