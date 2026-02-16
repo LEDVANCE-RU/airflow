@@ -5,7 +5,7 @@ from datetime import datetime
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 from hooks.smtp import SmtpExtHook, Attachment, MimeAppTypeMap
-from send_internal_stock_report.libs.constants import INSERT_STOCK_REPORT_SQL
+from send_internal_stock_report.libs.constants import INSERT_STOCK_REPORT_SQL, SELECT_STOCK_REPORT_SQL
 
 
 def get_stock_report_df(pg_conn_id: str) -> pd.DataFrame:
@@ -19,7 +19,7 @@ def get_stock_report_df(pg_conn_id: str) -> pd.DataFrame:
     conn.commit()
 
     logging.info("Reading stock report data...")
-    report_df = pd.read_sql_table('si_result', pg_hook.get_uri(), 'si')
+    report_df = pd.read_sql(SELECT_STOCK_REPORT_SQL, pg_hook.get_uri())
     logging.info("Successfully fetched %s rows.", len(report_df))
     
     return report_df
@@ -49,7 +49,7 @@ def send_report_by_email(report_df: pd.DataFrame, recipients: dict, tmp_dir: str
         html_content=(
             "<p>Добрый день,</p>"
             "<p>Письмо было сформировано и отправлено автоматически. Просьба не отвечать на данное письмо.</p>"
-            "<p>По всем возникающим вопросам Вы можете обращаться на почту bi@ledvance.ru»</p>"
+            "<p>По всем возникающим вопросам Вы можете обращаться на почту bi@ledvance.ru</p>"
         ),
         files=[Attachment(filepath, mime_type=MimeAppTypeMap.EXCEL)],
     )

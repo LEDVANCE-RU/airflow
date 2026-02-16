@@ -104,8 +104,8 @@ transit_data AS (
             ic,
             ean,
             CASE 
-                WHEN (receipt_date - CURRENT_DATE) < 0 THEN 'arrived'
-                WHEN (receipt_date - CURRENT_DATE) BETWEEN 0 AND 9 THEN '1-10 d'
+                WHEN (receipt_date - CURRENT_DATE) < -1 THEN 'arrived'
+                WHEN (receipt_date - CURRENT_DATE) BETWEEN -1 AND 9 THEN '1-10 d'
                 WHEN (receipt_date - CURRENT_DATE) BETWEEN 10 AND 19 THEN '10-20 d'
                 WHEN (receipt_date - CURRENT_DATE) BETWEEN 20 AND 29 THEN '20-30 d'
                 WHEN (receipt_date - CURRENT_DATE) BETWEEN 30 AND 44 THEN '30-45 d'
@@ -285,4 +285,45 @@ SELECT
     openpo_m_plus_3,
     openpo_m_plus_4
 FROM combined_data;
+"""
+
+
+SELECT_STOCK_REPORT_SQL = """
+select
+    bu_with_uv as bu,
+    ag,
+    aug,
+    project_ic,
+    wh_status,
+    lifecycle_status,
+    ean_group,
+    ean,
+    description,
+    sum(available_stock) as "В наличии",
+    sum(shipped_stock) as "Отгружается",
+    sum(reserved_stock) as "В резерве",
+    sum(free_stock) as "В Доступно",
+    sum(backorder_stock) as "Ожидается в резерве",
+    sum(supply_needed_stock) as "К обеспечению",
+    sum(transit_1_10_d) as "1-10 d",
+    sum(transit_10_20_d)            as "10-20 d",
+    sum(transit_20_30_d)            as "20-30 d",
+    sum(transit_30_45_d)            as "30-45 d",
+    sum(transit_45_60_d) as "45-60 d",
+    sum(openpo_m) as "M",
+    sum(openpo_m_plus_1) as "M+1",
+    sum(openpo_m_plus_2) as "M+2",
+    sum(openpo_m_plus_3) as "M+3",
+    sum(openpo_m_plus_4) as "M+4"
+from si.si_result
+group by
+    bu_with_uv,
+    ag,
+    aug,
+    project_ic,
+    wh_status,
+    lifecycle_status,
+    ean_group,
+    ean,
+    description
 """
