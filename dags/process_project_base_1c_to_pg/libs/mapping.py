@@ -12,7 +12,7 @@ class ProjectBaseFieldsMap:
     def src_map(cls) -> dict[str, str]:
         return {
             'Проект': 'opp_num_header',
-            'Проект.Number': 'opp_id',
+            'Проект.Номер': 'opp_id',
             'Название проекта': 'opp_name',
             'Номер (старый)': 'opp_id_old',
             'Номер в системе партнера': 'opp_partner_id',
