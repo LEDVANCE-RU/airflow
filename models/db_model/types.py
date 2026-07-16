@@ -25,7 +25,7 @@ class DateTimeMSK(TypeDecorator[datetime.datetime]):
     def process_bind_param(self, value: Optional[datetime.datetime], dialect: Dialect) -> Optional[datetime.datetime]:
         if value is None:
             return value
-        return value.astimezone(self._TZ_MSK)
+        return value.astimezone(self._TZ_MSK).replace(tzinfo=None)
 
     def process_result_value(self, value: Optional[datetime.datetime], dialect: Dialect) -> Optional[datetime.datetime]:
         if value is None:

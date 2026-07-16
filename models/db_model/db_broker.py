@@ -14,8 +14,8 @@ from db_model.main import SessionLocal
 from db_model.mapping import QuerySuccessorIcMap
 from db_model.core.model import ZeroedStockHistory, LemanaProOrder, RuntimeState
 from db_model.marketprovider.model import Category, Product, TempProduct
-from db_model.onec_extract.constants import WarehouseUUID
-from db_model.onec_extract.model import WmsStockHistory, Nomenclature, Ic, FutureArrivalsStock, StockHistory
+from db_model.onec_extract.constants import WarehouseUUID, IcLifecycleStatus
+from db_model.onec_extract.model import Nomenclature, Ic, FutureArrivalsStock, StockHistory
 from lemana_pro_orders_processing.libs.order_parser import Order
 
 
@@ -181,9 +181,13 @@ class DbBroker(metaclass=AutoRollbackMeta):
                     StockHistory.nomenclature_uuid,
                     StockHistory.ic_uuid,
                     sa.func.max(StockHistory.stock_date).label(StockHistory.stock_date.key)
+                ).join(
+                    Ic,
+                    StockHistory.ic_uuid == Ic.uuid
                 ).filter(
                     extra_filter,
-                    StockHistory.warehouse_uuid.in_(wh_uuids)
+                    StockHistory.warehouse_uuid.in_(wh_uuids),
+                    Ic.lifecycle_status.in_(IcLifecycleStatus.active_and_undef_statuses())
                 ).group_by(
                     StockHistory.nomenclature_uuid,
                     StockHistory.ic_uuid

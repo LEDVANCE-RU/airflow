@@ -23,5 +23,14 @@ class IcLifecycleStatus(StrEnum):
         ]
 
     @classmethod
+    def active_and_undef_statuses(cls):
+        return [
+            cls.NEW,
+            cls.REG,
+            cls.EOL,
+            None
+        ]
+
+    @classmethod
     def inactive_statuses(cls):
         return [cls.ARC]

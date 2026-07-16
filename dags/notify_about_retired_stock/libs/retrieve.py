@@ -35,7 +35,7 @@ def get_zeroed_stock_with_successors() -> pandas.DataFrame | None:
         ic_uuids = list({r.ic_uuid for r in result_zeroed_stock if r.ic_uuid is not None})
         result_sibling_ics = db_broker.get_successor_ics(
             ic_uuids=ic_uuids,
-            lifecycle_statuses=IcLifecycleStatus.active_statuses() + [None],
+            lifecycle_statuses=IcLifecycleStatus.active_and_undef_statuses(),
             return_stmt=True
         )
         df = pandas.read_sql(result_sibling_ics, db_broker.session.connection())
