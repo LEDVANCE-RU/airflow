@@ -1,0 +1,6 @@
+# Артефакты refresh_session.py - живая сессия портала, секрет уровня пароля.
+# Хранится только в Airflow Variable 'lemana_portal_session_state', не в git.
+storage_state.json
+browser_profile/
+
+__pycache__/
