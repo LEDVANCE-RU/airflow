@@ -67,7 +67,7 @@ def download_report(dest_path: str, index: int | None = None) -> Path:
     """
     dest_path = Path(dest_path)
 
-    state_json = Variable.get(SESSION_STATE_VARIABLE, default_var=None)
+    state_json = Variable.get(SESSION_STATE_VARIABLE, default=None)
     if not state_json:
         raise SessionExpiredError(
             f"Airflow Variable '{SESSION_STATE_VARIABLE}' не задана. "
