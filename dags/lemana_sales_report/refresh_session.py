@@ -13,7 +13,7 @@ SessionExpiredError).
 
 Подготовка перед первым запуском:
     pip install -r requirements.txt
-    python -m playwright install chromium
+    playwright install chromium
 
 Запуск:
     python refresh_session.py

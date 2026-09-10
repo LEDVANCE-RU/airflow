@@ -13,6 +13,12 @@ refresh_session.py и обновить Variable.
   - Variable 'lemana_portal_session_state' - JSON сессии от refresh_session.py.
   - Variable 'tmp_dir_path' - уже используется другими DAG-ами репозитория.
   - Connection 'pg_prod' - уже используется другими DAG-ами репозитория.
+
+playwright уже добавлен в requirements.txt репозитория. Браузерный
+бинарник через pip не ставится - на среде, где выполняется DAG (и там,
+где запускается refresh_session.py), после установки зависимостей
+дополнительно нужно выполнить:
+    playwright install chromium
 """
 import logging
 import os
