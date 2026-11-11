@@ -6,16 +6,19 @@ import sqlalchemy as sa
 import sqlalchemy.engine as sa_engine
 import sqlalchemy.dialects.postgresql as sa_pg
 import sqlalchemy.sql as sa_sql
+
+import db_model.onec_extract.hooks
+
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import aliased as sa_aliased
 
 from constants import TZ_MSK, TZ_UTC
 from db_model.main import SessionLocal
-from db_model.mapping import QuerySuccessorIcMap
+from db_model.mapping import QuerySuccessorIcMap, QueryIcPackageMap
 from db_model.core.model import ZeroedStockHistory, LemanaProOrder, RuntimeState
 from db_model.marketprovider.model import Category, Product, TempProduct
 from db_model.onec_extract.constants import WarehouseUUID, IcLifecycleStatus
-from db_model.onec_extract.model import Nomenclature, Ic, FutureArrivalsStock, StockHistory
+from db_model.onec_extract.model import Nomenclature, Ic, Packages, FutureArrivalsStock, StockHistory, Partner
 from lemana_pro_orders_processing.libs.order_parser import Order
 
 
@@ -447,3 +450,73 @@ class DbBroker(metaclass=AutoRollbackMeta):
     def get_marketprovider_products(self, return_stmt: bool = False):
         stmt = sa.select(Product)
         return stmt if return_stmt else self.session.execute(stmt).all()
+
+    def get_ic_packages(self, return_stmt: bool = False):
+        fmap = QueryIcPackageMap
+        stmt = (
+            sa.select(
+                Nomenclature.uuid.label(fmap.NOMENCLATURE_UUID),
+                Nomenclature.article.label(fmap.SKU),
+                Nomenclature.tnved.label(fmap.TNVED),
+                Nomenclature.okpd2.label(fmap.OKPD2),
+                Ic.uuid.label(fmap.IC_UUID),
+                Ic.name.label(fmap.IC),
+                Ic.lifecycle_status.label(fmap.IC_LIFECYCLE_STATUS),
+                Ic.contains_battery.label(fmap.CONTAINS_BATTERY),
+                Ic.supplier_uuid.label(fmap.SUPPLIER_UUID),
+                Partner.name.label(fmap.SUPPLIER_NAME),
+                Packages.ean.label(fmap.EAN),
+                Packages.level.label(fmap.LEVEL),
+                (Packages.numerator / Packages.denominator).label(fmap.QTY),
+                Packages.height.label(fmap.HEIGHT),
+                Packages.length.label(fmap.LENGTH),
+                Packages.width.label(fmap.WIDTH),
+                Packages.weight.label(fmap.WEIGHT),
+            ).join(Nomenclature, Nomenclature.uuid == Ic.nomenclature_uuid)
+            .join(
+                Packages,
+                sa.and_(
+                    Packages.nomenclature_uuid == Nomenclature.uuid,
+                    Packages.ic_name == Ic.name
+                )
+            ).outerjoin(
+                Partner,
+                Partner.uuid == Ic.supplier_uuid
+            ).filter(
+                Packages.level.isnot(None)
+            )
+        )
+        return stmt if return_stmt else self.session.execute(stmt).all()
+
+    def get_actual_ics(self, return_stmt: bool = False):
+        subq = (
+            sa.select(
+                Ic.uuid,
+                Ic.priority,
+                sa.func.row_number()
+                .over(
+                    partition_by=Ic.nomenclature_uuid,
+                    order_by=sa.desc(Ic.priority)
+                )
+                .label("rn")
+            ).subquery()
+        )
+        stmt = sa.select(subq).where(subq.c.rn == 1)
+        return stmt if return_stmt else self.session.execute(stmt).all()
+
+    def get_actual_ic_packages(self, return_stmt: bool = False):
+        fmap = QueryIcPackageMap
+        sq_actual_ics = self.get_actual_ics(return_stmt=True).subquery()
+        sq_ic_packages = self.get_ic_packages(return_stmt=True).subquery()
+        stmt = (
+            sa.select(
+                sq_ic_packages
+            ).select_from(sq_ic_packages)
+            .join(
+                sq_actual_ics,
+                sq_actual_ics.c.uuid == sq_ic_packages.c[fmap.IC_UUID]
+            )
+        )
+        return stmt if return_stmt else self.session.execute(stmt).all()
+
+

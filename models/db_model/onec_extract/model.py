@@ -13,35 +13,47 @@ class AbstractBaseModel(Base):
     __table_args__ = {'schema': ONEC_EXTRACT_SCHEMA}
 
 
-class Nomenclature(AbstractBaseModel):
-    __tablename__ = "Nomenklatura"
-
-    uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', default=uuid.uuid4, primary_key=True)
-    article = sa.Column(sa.String, name='Artikul')
-    full_name = sa.Column(sa.String, name='NaimenovaniePolnoe')
+class DeletionMarkMixin:
     is_deleted = sa.Column(sa.Boolean, name='PometkaUdaleniya')
 
 
-class Ic(AbstractBaseModel):
+class Nomenclature(AbstractBaseModel, DeletionMarkMixin):
+    __tablename__ = "Nomenklatura"
+
+    uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', default=uuid.uuid4, primary_key=True)
+    code = sa.Column(sa.String, name='Kod')
+    article = sa.Column(sa.String, name='Artikul')
+    full_name = sa.Column(sa.String, name='NaimenovaniePolnoe')
+    tnved = sa.Column(sa.String, name='KodTNVED')
+    okpd2 = sa.Column(sa.String, name='KodOKPD2')
+
+
+class Ic(AbstractBaseModel, DeletionMarkMixin):
     __tablename__ = "KHarakteristikiNomenklatury"
 
     uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', default=uuid.uuid4, primary_key=True)
     nomenclature_uuid = sa.Column(UUID(as_uuid=True), name='VladeletsGuid')
     name = sa.Column(sa.String, name='Naimenovanie')
-    lifecycle_status = sa.Column(sa.String, name="WA_StatusZHiznennogoTSikla")
-    priority = sa.Column(sa.Integer, name="WA_Prioritet")
-    is_deleted = sa.Column(sa.Boolean, name='PometkaUdaleniya')
+    lifecycle_status = sa.Column(sa.String, name='WA_StatusZHiznennogoTSikla')
+    priority = sa.Column(sa.Integer, name='WA_Prioritet')
+    contains_battery = sa.Column(sa.Boolean, name='erpit_SoderzhitBatareykiAkkumulyatory')
+    supplier_uuid = sa.Column(UUID(as_uuid=True), name='WA_PostavshchikGuid')
 
 
-class Packages(AbstractBaseModel):
+class Packages(AbstractBaseModel, DeletionMarkMixin):
     __tablename__ = "UpakovkiEdinitsyIzmereniya"
 
     uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', default=uuid.uuid4, primary_key=True)
+    ean = sa.Column(sa.String, name='WA_SHtrikhkod')
     nomenclature_uuid = sa.Column(UUID(as_uuid=True), name='VladeletsGuid')
     ic_name = sa.Column(sa.String, name='WA_KHarakteristika')
+    level = sa.Column(sa.String, name='WA_UrovenUpakovki')
     numerator = sa.Column(sa.Numeric, name='CHislitel')
     denominator = sa.Column(sa.Numeric, name='Znamenatel')
-    is_deleted = sa.Column(sa.Boolean, name='PometkaUdaleniya')
+    height = sa.Column(sa.Numeric, name='Vysota')
+    width = sa.Column(sa.Numeric, name='SHirina')
+    length = sa.Column(sa.Numeric, name='Glubina')
+    weight = sa.Column(sa.Numeric, name='Ves')
 
 
 class PackagesDepartments(AbstractBaseModel):
@@ -93,4 +105,11 @@ class Warehouse(AbstractBaseModel):
     __tablename__ = "Sklady"
 
     warehouse_uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', primary_key=True)
+    name = sa.Column(sa.String, name='Naimenovanie')
+
+
+class Partner(AbstractBaseModel, DeletionMarkMixin):
+    __tablename__ = "Partnery"
+
+    uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', primary_key=True)
     name = sa.Column(sa.String, name='Naimenovanie')

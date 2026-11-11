@@ -21,7 +21,8 @@ class DesadvSender:
 
     def send(self, fp: str, outputs_dir_path: str = None):
         df = pandas.read_parquet(fp)
-        for num in df[BaseFields.INVOICE].unique():
+        invoice_nums = df[BaseFields.INVOICE].unique()
+        for num in invoice_nums:
             if pandas.isna(num):
                 continue
             df_inv = df[df[BaseFields.INVOICE] == num]
