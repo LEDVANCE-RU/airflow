@@ -7,7 +7,7 @@ from db_model.db_broker import DbBroker
 from db_model.mapping import QueryIcPackageMap
 
 
-def process_data(result_fname: str) -> pandas.DataFrame | None:
+def process_data(result_fp: str) -> pandas.DataFrame | None:
     fmap = QueryIcPackageMap
 
     with (DbBroker() as db_broker):
@@ -58,4 +58,4 @@ def process_data(result_fname: str) -> pandas.DataFrame | None:
         # forcibly add columns from mapping for the case when levels are missing in source dataframe
         df = df.reindex(columns=target_cols)
         df.drop([fmap.IC_UUID], axis=1, inplace=True)
-        df.to_excel(result_fname, index=False)
+        df.to_excel(result_fp, index=False)

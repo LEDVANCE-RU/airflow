@@ -12,7 +12,8 @@ from smbprotocol.exceptions import SMBOSError
 from constants import TZ_MSK
 from db_model.db_broker import DbBroker
 from process_wms_orders_with_fairmarks.libs.constants import TRG_HEADERS, FAIRMARK_ARTICLE_PATTERN, \
-    LAST_SFTP_WMS_ORDERS_READ_KEY
+    SMB_FILES_RETENTION_THRESHOLD
+from process_wms_orders_with_fairmarks.libs.utils import get_last_read_runtime_variable_name
 
 
 def parse_marks(items: list[dict], level: int = 0):
@@ -41,7 +42,7 @@ def transform_file(sftp_client: SFTPClient, sftp_fpath: str,
         out_fpath = os.path.join(smb_out_dpath, f'{out_fname}.xlsx')
         try:
             smb_session.stat(out_fpath)
-            logging.warning("Файл '%s' уже существует. Пропускаем...", out_fpath)
+            logging.warning("File '%s' already exists. Skipping...", out_fpath)
             return 0
         except SMBOSError:
             pass
@@ -49,7 +50,9 @@ def transform_file(sftp_client: SFTPClient, sftp_fpath: str,
         d = json.load(fo)
         file_attrs = fo.stat()
         mtime_ts = file_attrs.st_mtime
-        if not (d.get('ОрдерПроконтролирован') or d.get("ПриходныйОрдерПринят")):
+        if not (d.get('ОрдерПроконтролирован')
+                or d.get('ПриходныйОрдерПринят')
+                or d.get('ИмяМетаданных') == 'ПланПоступления'):
             return mtime_ts
         # items = [(item['Номенклатура']['Артикул'], item['Количество']) for item in d['Строки']]
         # df_items = pandas.DataFrame(items, columns=['Артикул', 'Количество'])
@@ -75,6 +78,7 @@ def transform_files(sftp_client: SFTPClient, sftp_fnames: list[str], sftp_dpath:
             try:
                 mtime_ts = transform_file(sftp_client, sftp_fpath, smb_session, smb_out_dpath)
             except Exception as e:
+                logging.error(sftp_fname)
                 logging.exception(e)
                 continue
             max_mtime_ts = max(max_mtime_ts, mtime_ts)
@@ -83,6 +87,19 @@ def transform_files(sftp_client: SFTPClient, sftp_fnames: list[str], sftp_dpath:
         return
 
     db_broker = DbBroker()
-    db_broker.set_runtime_state(LAST_SFTP_WMS_ORDERS_READ_KEY,
+    db_broker.set_runtime_state(get_last_read_runtime_variable_name(sftp_dpath),
                                 datetime.fromtimestamp(max_mtime_ts, TZ_MSK),
                                 commit=True)
+
+
+def remove_old_smb_files(smb_hook: SambaHook, smb_dpath: str):
+    cutoff_time = datetime.now(TZ_MSK) - SMB_FILES_RETENTION_THRESHOLD
+    with smb_hook as smb_session:
+        for entry in smb_session.scandir(smb_dpath):
+            if not entry.is_file():
+                continue
+            modified_at = datetime.fromtimestamp(entry.stat().st_mtime, tz=TZ_MSK)
+            if modified_at < cutoff_time:
+                fpath = os.path.join(smb_dpath, entry.name)
+                smb_session.remove(fpath)
+                logging.info("File '%s' removed.", fpath)

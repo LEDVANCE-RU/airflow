@@ -19,29 +19,29 @@ with DAG(
     def transform_task() -> str:
         from update_packages_data.libs.transform import process_data
 
-        local_fname = f'packages_{str(uuid.uuid4())}.xlsx'
-        process_data(local_fname)
-        return local_fname
+        local_dp = os.path.join(Variable.get('tmp_dir_path'), 'packages')
+        local_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_packages.xlsx")
+        process_data(local_fp)
+        return local_fp
 
     @task
-    def upload_task(local_fname: str):
+    def upload_task(local_fp: str):
         from hooks.webdav import WebDAVHook
 
         webdav_hook = WebDAVHook('webdav_sharepoint_root')
         webdav_client = webdav_hook.get_conn()
 
         remote_fp = os.path.join(Variable.get('packages_sp_out_dir'), "packages.xlsx")
-        webdav_client.upload(remote_fp, local_fname)
+        webdav_client.upload(remote_fp, local_fp)
 
         return True
 
     @teardown
-    def cleanup_task(local_fname: str):
-        os.remove(local_fname)
-        logging.info("Temporary file %s removed.", local_fname)
+    def cleanup_task(local_fp: str):
+        os.remove(local_fp)
+        logging.info("Temporary file %s removed.", local_fp)
 
-    local_fname = transform_task()
-    uploaded = upload_task(local_fname)
-    cleanup_task(local_fname)
+    local_fp = transform_task()
+    uploaded = upload_task(local_fp)
 
-    uploaded >> cleanup_task(local_fname)
+    uploaded >> cleanup_task(local_fp)
