@@ -56,7 +56,7 @@ def transform_file(sftp_client: SFTPClient, sftp_fpath: str,
             return mtime_ts
         # items = [(item['Номенклатура']['Артикул'], item['Количество']) for item in d['Строки']]
         # df_items = pandas.DataFrame(items, columns=['Артикул', 'Количество'])
-        marks = parse_marks(d['ТЧ_ШтрихкодыУпаковок'])
+        marks = parse_marks(d.get('ТЧ_ШтрихкодыУпаковок'))
         df_marks = pandas.DataFrame(marks)
         df_marks.columns = TRG_HEADERS[:len(df_marks.columns)]
 
