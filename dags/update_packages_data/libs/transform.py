@@ -25,6 +25,8 @@ def process_data(result_fp: str) -> pandas.DataFrame | None:
         index_cols = [
             fmap.IC_UUID,
             fmap.SKU,
+            fmap.NAME,
+            fmap.FULL_NAME,
             fmap.IC,
             fmap.IC_LIFECYCLE_STATUS,
             fmap.TNVED,

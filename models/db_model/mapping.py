@@ -17,6 +17,8 @@ class QuerySuccessorIcMap(StrEnum):
 class QueryIcPackageMap(StrEnum):
     NOMENCLATURE_UUID = 'nomenclature_uuid'
     SKU = 'sku'
+    NAME = 'name'
+    FULL_NAME = 'full_name'
     TNVED = 'tnved'
     OKPD2 = 'okpd2'
     IC_UUID = 'ic_uuid'

@@ -457,6 +457,8 @@ class DbBroker(metaclass=AutoRollbackMeta):
             sa.select(
                 Nomenclature.uuid.label(fmap.NOMENCLATURE_UUID),
                 Nomenclature.article.label(fmap.SKU),
+                Nomenclature.name.label(fmap.NAME),
+                Nomenclature.full_name.label(fmap.FULL_NAME),
                 Nomenclature.tnved.label(fmap.TNVED),
                 Nomenclature.okpd2.label(fmap.OKPD2),
                 Ic.uuid.label(fmap.IC_UUID),

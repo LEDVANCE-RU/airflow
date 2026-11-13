@@ -23,6 +23,7 @@ class Nomenclature(AbstractBaseModel, DeletionMarkMixin):
     uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', default=uuid.uuid4, primary_key=True)
     code = sa.Column(sa.String, name='Kod')
     article = sa.Column(sa.String, name='Artikul')
+    name = sa.Column(sa.String, name='Naimenovanie')
     full_name = sa.Column(sa.String, name='NaimenovaniePolnoe')
     tnved = sa.Column(sa.String, name='KodTNVED')
     okpd2 = sa.Column(sa.String, name='KodOKPD2')
