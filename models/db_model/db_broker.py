@@ -1,3 +1,5 @@
+import itertools
+import logging
 from datetime import timedelta, datetime
 from functools import wraps
 from typing import Callable, Any
@@ -14,11 +16,13 @@ from sqlalchemy.orm import aliased as sa_aliased
 
 from constants import TZ_MSK, TZ_UTC
 from db_model.main import SessionLocal
-from db_model.mapping import QuerySuccessorIcMap, QueryIcPackageMap
-from db_model.core.model import ZeroedStockHistory, LemanaProOrder, RuntimeState
+import db_model.mapping as q_map
+from db_model.core.model import ZeroedStockHistory, LemanaProOrder, RuntimeState, SKUActiveCertificatesPivoted
 from db_model.marketprovider.model import Category, Product, TempProduct
-from db_model.onec_extract.constants import WarehouseUUID, IcLifecycleStatus
-from db_model.onec_extract.model import Nomenclature, Ic, Packages, FutureArrivalsStock, StockHistory, Partner
+from db_model.onec_extract.constants import WarehouseUUID, IcLifecycleStatus, NomenclatureCertificateStatusUUID, \
+    NomenclatureCertificateType
+from db_model.onec_extract.model import Nomenclature, Ic, Packages, FutureArrivalsStock, StockHistory, Partner, \
+    NomenclatureCertificate, NomenclatureCertificateOperationScope
 from lemana_pro_orders_processing.libs.order_parser import Order
 
 
@@ -320,16 +324,16 @@ class DbBroker(metaclass=AutoRollbackMeta):
         IcSuccessor = sa_aliased(Ic)  #type: Ic
         stmt = (
             sa.select(
-                Ic.uuid.label(QuerySuccessorIcMap.IC_UUID),
-                Ic.name.label(QuerySuccessorIcMap.IC),
-                Ic.lifecycle_status.label(QuerySuccessorIcMap.IC_LIFECYCLE_STATUS),
-                Ic.priority.label(QuerySuccessorIcMap.IC_PRIORITY),
-                Nomenclature.uuid.label(QuerySuccessorIcMap.NOMENCLATURE_UUID),
-                Nomenclature.article.label(QuerySuccessorIcMap.ARTICLE),
-                IcSuccessor.uuid.label(QuerySuccessorIcMap.SUCCESSOR_IC_UUID),
-                IcSuccessor.name.label(QuerySuccessorIcMap.SUCCESSOR_IC),
-                IcSuccessor.lifecycle_status.label(QuerySuccessorIcMap.SUCCESSOR_IC_LIFECYCLE_STATUS),
-                IcSuccessor.priority.label(QuerySuccessorIcMap.SUCCESSOR_IC_PRIORITY),
+                Ic.uuid.label(q_map.QuerySuccessorIcMap.IC_UUID),
+                Ic.name.label(q_map.QuerySuccessorIcMap.IC),
+                Ic.lifecycle_status.label(q_map.QuerySuccessorIcMap.IC_LIFECYCLE_STATUS),
+                Ic.priority.label(q_map.QuerySuccessorIcMap.IC_PRIORITY),
+                Nomenclature.uuid.label(q_map.QuerySuccessorIcMap.NOMENCLATURE_UUID),
+                Nomenclature.article.label(q_map.QuerySuccessorIcMap.ARTICLE),
+                IcSuccessor.uuid.label(q_map.QuerySuccessorIcMap.SUCCESSOR_IC_UUID),
+                IcSuccessor.name.label(q_map.QuerySuccessorIcMap.SUCCESSOR_IC),
+                IcSuccessor.lifecycle_status.label(q_map.QuerySuccessorIcMap.SUCCESSOR_IC_LIFECYCLE_STATUS),
+                IcSuccessor.priority.label(q_map.QuerySuccessorIcMap.SUCCESSOR_IC_PRIORITY),
             ).outerjoin(
                 Nomenclature,
                 sa.and_(
@@ -452,10 +456,10 @@ class DbBroker(metaclass=AutoRollbackMeta):
         return stmt if return_stmt else self.session.execute(stmt).all()
 
     def get_ic_packages(self, return_stmt: bool = False):
-        fmap = QueryIcPackageMap
+        fmap = q_map.QueryIcPackageMap
         stmt = (
             sa.select(
-                Nomenclature.uuid.label(fmap.NOMENCLATURE_UUID),
+                Nomenclature.uuid.label(fmap.SKU_UUID),
                 Nomenclature.article.label(fmap.SKU),
                 Nomenclature.name.label(fmap.NAME),
                 Nomenclature.full_name.label(fmap.FULL_NAME),
@@ -494,20 +498,19 @@ class DbBroker(metaclass=AutoRollbackMeta):
         subq = (
             sa.select(
                 Ic.uuid,
-                Ic.priority,
+                Ic.nomenclature_uuid,
                 sa.func.row_number()
                 .over(
                     partition_by=Ic.nomenclature_uuid,
                     order_by=sa.desc(Ic.priority)
-                )
-                .label("rn")
+                ).label("rn")
             ).subquery()
         )
         stmt = sa.select(subq).where(subq.c.rn == 1)
         return stmt if return_stmt else self.session.execute(stmt).all()
 
     def get_actual_ic_packages(self, return_stmt: bool = False):
-        fmap = QueryIcPackageMap
+        fmap = q_map.QueryIcPackageMap
         sq_actual_ics = self.get_actual_ics(return_stmt=True).subquery()
         sq_ic_packages = self.get_ic_packages(return_stmt=True).subquery()
         stmt = (
@@ -521,4 +524,141 @@ class DbBroker(metaclass=AutoRollbackMeta):
         )
         return stmt if return_stmt else self.session.execute(stmt).all()
 
+    def get_active_sku_certificates(self, cert_types: list[str] | None = None,
+                                    return_stmt: bool = False):
+        fmap = q_map.QuerySKUCertificateMap
+        subq = (
+            sa.select(
+                NomenclatureCertificate.uuid.label(fmap.CERT_UUID),
+                Nomenclature.uuid.label(fmap.SKU_UUID),
+                Nomenclature.code.label(fmap.SKU_CODE),
+                Nomenclature.article.label(fmap.SKU),
+                Nomenclature.name.label(fmap.SKU_NAME),
+                NomenclatureCertificate.name.label(fmap.CERT_NAME),
+                NomenclatureCertificate.number.label(fmap.CERT_NUM),
+                NomenclatureCertificate.type.label(fmap.CERT_TYPE),
+                NomenclatureCertificate.active_from.label(fmap.CERT_ACTIVE_FROM),
+                NomenclatureCertificate.active_till.label(fmap.CERT_ACTIVE_TILL),
+                NomenclatureCertificate.is_unlimited.label(fmap.CERT_IS_UNLIMITED),
+                sa.func.row_number()
+                .over(
+                    partition_by=[Nomenclature.uuid, NomenclatureCertificate.type],
+                    order_by=[
+                        sa.desc(NomenclatureCertificate.active_from),
+                        sa.desc(NomenclatureCertificate.active_till)
+                    ],
+                ).label('rn')
+            ).join(
+                NomenclatureCertificateOperationScope,
+                NomenclatureCertificateOperationScope.cert_uuid == NomenclatureCertificate.uuid
+            ).join(
+                Nomenclature,
+                Nomenclature.uuid == NomenclatureCertificateOperationScope.nomenclature_uuid
+            ).filter(
+                True if cert_types is None else NomenclatureCertificate.type.in_(cert_types),
+                NomenclatureCertificate.status_uuid == NomenclatureCertificateStatusUUID.ACTIVE
+            )
+        ).subquery()
+        stmt = sa.select(subq).where(subq.c.rn == 1)
+        return stmt if return_stmt else self.session.execute(stmt).all()
 
+    def get_active_sku_certificates_pivoted(self, return_stmt: bool = False):
+        fmap = q_map.QuerySKUCertificateMap
+        fmap_pvt = q_map.QuerySKUCommodityCertificatesPivotedMap
+        cert_types = [
+            NomenclatureCertificateType.CONFORMITY,
+            NomenclatureCertificateType.CONFORMITY_DECLARATION
+        ]
+        value_cols = [
+            fmap.CERT_NAME,
+            fmap.CERT_NUM,
+            fmap.CERT_ACTIVE_FROM,
+            fmap.CERT_ACTIVE_TILL,
+        ]
+        val_col_map = {
+            (NomenclatureCertificateType.CONFORMITY, fmap.CERT_NAME): fmap_pvt.CONF_CERT_NAME,
+            (NomenclatureCertificateType.CONFORMITY, fmap.CERT_NUM): fmap_pvt.CONF_CERT_NUM,
+            (NomenclatureCertificateType.CONFORMITY, fmap.CERT_ACTIVE_FROM): fmap_pvt.CONF_CERT_ACTIVE_FROM,
+            (NomenclatureCertificateType.CONFORMITY, fmap.CERT_ACTIVE_TILL): fmap_pvt.CONF_CERT_ACTIVE_TILL,
+            (NomenclatureCertificateType.CONFORMITY_DECLARATION, fmap.CERT_NAME): fmap_pvt.CONF_DECL_CERT_NAME,
+            (NomenclatureCertificateType.CONFORMITY_DECLARATION, fmap.CERT_NUM): fmap_pvt.CONF_DECL_CERT_NUM,
+            (NomenclatureCertificateType.CONFORMITY_DECLARATION, fmap.CERT_ACTIVE_FROM): fmap_pvt.CONF_DECL_CERT_ACTIVE_FROM,
+            (NomenclatureCertificateType.CONFORMITY_DECLARATION, fmap.CERT_ACTIVE_TILL): fmap_pvt.CONF_DECL_CERT_ACTIVE_TILL
+        }
+        subq = self.get_active_sku_certificates(
+            cert_types=cert_types,
+            return_stmt=True
+        ).subquery()
+        pivoted_cols = [
+            sa.func.max(subq.c[value_col])
+            .filter(subq.c[fmap.CERT_TYPE] == cert_type)
+            .label(val_col_map[(cert_type, value_col)])
+            for cert_type, value_col in itertools.product(cert_types, value_cols)
+        ]
+        group_key_cols = [
+            subq.c[fmap.SKU_UUID],
+            subq.c[fmap.SKU_CODE],
+            subq.c[fmap.SKU]
+        ]
+        stmt = (
+            sa.select(
+                *group_key_cols,
+                *pivoted_cols
+            ).select_from(subq)
+            .group_by(*group_key_cols)
+        )
+        return stmt if return_stmt else self.session.execute(stmt).all()
+
+    def upsert_pivoted_sku_active_certificates(self):
+        fmap_pvt = q_map.QuerySKUCommodityCertificatesPivotedMap
+        col_map = {
+            SKUActiveCertificatesPivoted.sku_uuid: fmap_pvt.SKU_UUID,
+            SKUActiveCertificatesPivoted.sku_code: fmap_pvt.SKU_CODE,
+            SKUActiveCertificatesPivoted.sku: fmap_pvt.SKU,
+            SKUActiveCertificatesPivoted.conf_cert_name: fmap_pvt.CONF_CERT_NAME,
+            SKUActiveCertificatesPivoted.conf_cert_num: fmap_pvt.CONF_CERT_NUM,
+            SKUActiveCertificatesPivoted.conf_cert_active_from: fmap_pvt.CONF_CERT_ACTIVE_FROM,
+            SKUActiveCertificatesPivoted.conf_cert_active_till: fmap_pvt.CONF_CERT_ACTIVE_TILL,
+            SKUActiveCertificatesPivoted.conf_decl_cert_name: fmap_pvt.CONF_DECL_CERT_NAME,
+            SKUActiveCertificatesPivoted.conf_decl_cert_num: fmap_pvt.CONF_DECL_CERT_NUM,
+            SKUActiveCertificatesPivoted.conf_decl_cert_active_from: fmap_pvt.CONF_DECL_CERT_ACTIVE_FROM,
+            SKUActiveCertificatesPivoted.conf_decl_cert_active_till: fmap_pvt.CONF_DECL_CERT_ACTIVE_TILL
+        }
+        subq = self.get_active_sku_certificates_pivoted(return_stmt=True).subquery()
+
+        stmt_delete = (
+            sa.delete(SKUActiveCertificatesPivoted)
+            .where(
+                ~SKUActiveCertificatesPivoted.sku_uuid.in_(sa.select(subq.c.sku_uuid))
+            )
+        )
+
+        stmt_insert = (
+            sa_pg.insert(SKUActiveCertificatesPivoted)
+            .from_select(
+                list(col_map.keys()),
+                sa.select(*[subq.c[v] for v in col_map.values()]),
+            )
+        )
+        index_elements = [SKUActiveCertificatesPivoted.sku_uuid]
+        stmt_upsert = (
+            stmt_insert.on_conflict_do_update(
+                index_elements=index_elements,
+                set_=SKUActiveCertificatesPivoted.get_update_set_for_upsert(
+                    stmt_insert,
+                    index_elements + [SKUActiveCertificatesPivoted.id]
+                ),
+            )
+        )
+
+        result = self.session.execute(stmt_delete, execution_options={"synchronize_session": False})
+        logging.info('Deleted rows: %s', result.rowcount)
+
+        result = self.session.execute(stmt_upsert)
+        logging.info('Updated/inserted rows: %s', result.rowcount)
+
+        self.session.commit()
+
+    def get_pivoted_sku_active_certificates(self, return_stmt=False):
+        stmt = sa.select(SKUActiveCertificatesPivoted)
+        return stmt if return_stmt else self.session.execute(stmt).all()

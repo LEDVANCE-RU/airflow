@@ -21,6 +21,7 @@ class Nomenclature(AbstractBaseModel, DeletionMarkMixin):
     __tablename__ = "Nomenklatura"
 
     uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', default=uuid.uuid4, primary_key=True)
+    nomenclature_type_uuid = sa.Column(UUID(as_uuid=True), name='TipNomenklaturyGuid')
     code = sa.Column(sa.String, name='Kod')
     article = sa.Column(sa.String, name='Artikul')
     name = sa.Column(sa.String, name='Naimenovanie')
@@ -114,3 +115,26 @@ class Partner(AbstractBaseModel, DeletionMarkMixin):
 
     uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', primary_key=True)
     name = sa.Column(sa.String, name='Naimenovanie')
+
+
+class NomenclatureCertificate(AbstractBaseModel, DeletionMarkMixin):
+    __tablename__ = "SertifikatyNomenklatury"
+
+    uuid = sa.Column(UUID(as_uuid=True), name='SsylkaGuid', primary_key=True)
+    name = sa.Column(sa.String, name='Naimenovanie')
+    number = sa.Column(sa.String, name='Nomer')
+    type = sa.Column(sa.String, name='TipSertifikata')
+    status_uuid = sa.Column(UUID(as_uuid=True), name='StatusGuid')
+    active_from = sa.Column(sa.Date, name='DataNachalaSrokaDeystviya')
+    active_till = sa.Column(sa.Date, name='DataOkonchaniyaSrokaDeystviya')
+    is_unlimited = sa.Column(sa.Boolean, name='Bessrochnyy')
+    issuing_authority = sa.Column(sa.String, name='OrganVydavshiyDokument')
+
+
+class NomenclatureCertificateOperationScope(AbstractBaseModel):
+    __tablename__ = "OblastiDeystviyaSertifikatovNomenklatury"
+
+    cert_uuid = sa.Column(UUID(as_uuid=True), name='SertifikatNomenklaturyGuid', primary_key=True)
+    nomenclature_type_uuid = sa.Column(UUID(as_uuid=True), name='VidNomenklaturyGuid', primary_key=True)
+    nomenclature_uuid = sa.Column(NullableUUID(as_uuid=True), name='NomenklaturaGuid', primary_key=True)
+    ic_uuid = sa.Column(NullableUUID(as_uuid=True), name='KHarakteristikaGuid', primary_key=True)

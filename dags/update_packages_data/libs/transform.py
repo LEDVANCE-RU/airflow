@@ -24,6 +24,7 @@ def process_data(result_fp: str) -> pandas.DataFrame | None:
 
         index_cols = [
             fmap.IC_UUID,
+            fmap.SKU_UUID,
             fmap.SKU,
             fmap.NAME,
             fmap.FULL_NAME,
@@ -59,5 +60,36 @@ def process_data(result_fp: str) -> pandas.DataFrame | None:
         )
         # forcibly add columns from mapping for the case when levels are missing in source dataframe
         df = df.reindex(columns=target_cols)
-        df.drop([fmap.IC_UUID], axis=1, inplace=True)
+        df = mixin_certificates_data(df)
+        df.drop([fmap.IC_UUID, fmap.SKU_UUID], axis=1, inplace=True)
         df.to_excel(result_fp, index=False)
+
+def mixin_certificates_data(df: pandas.DataFrame) -> pandas.DataFrame:
+    from db_model.core.model import SKUActiveCertificatesPivoted
+
+    fmap = QueryIcPackageMap
+
+    cert_cols = [
+        SKUActiveCertificatesPivoted.sku_uuid.name,
+        SKUActiveCertificatesPivoted.conf_cert_num.name,
+        SKUActiveCertificatesPivoted.conf_decl_cert_num.name
+    ]
+
+    with (DbBroker() as db_broker):
+        stmt = db_broker.get_pivoted_sku_active_certificates(return_stmt=True)
+        df_cert = pandas.read_sql(stmt, db_broker.session.connection(), columns=cert_cols)
+
+    df_result = df.merge(
+        df_cert,
+        how='left',
+        left_on=fmap.SKU_UUID,
+        right_on=SKUActiveCertificatesPivoted.sku_uuid.name
+    )
+
+    col1 = df_result.pop(SKUActiveCertificatesPivoted.conf_cert_num.name)
+    col2 = df_result.pop(SKUActiveCertificatesPivoted.conf_decl_cert_num.name)
+    target_idx = df.columns.get_loc(fmap.IC_LIFECYCLE_STATUS) + 1
+    df.insert(target_idx, fmap.IC_LIFECYCLE_STATUS, col2)
+    df.insert(target_idx, fmap.IC_LIFECYCLE_STATUS, col1)
+
+    return df_result
