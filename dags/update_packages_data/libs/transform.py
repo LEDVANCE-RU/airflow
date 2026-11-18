@@ -89,7 +89,7 @@ def mixin_certificates_data(df: pandas.DataFrame) -> pandas.DataFrame:
     col1 = df_result.pop(SKUActiveCertificatesPivoted.conf_cert_num.name)
     col2 = df_result.pop(SKUActiveCertificatesPivoted.conf_decl_cert_num.name)
     target_idx = df.columns.get_loc(fmap.IC_LIFECYCLE_STATUS) + 1
-    df.insert(target_idx, fmap.IC_LIFECYCLE_STATUS, col2)
-    df.insert(target_idx, fmap.IC_LIFECYCLE_STATUS, col1)
+    df.insert(target_idx, SKUActiveCertificatesPivoted.conf_decl_cert_num.name, col2)
+    df.insert(target_idx, SKUActiveCertificatesPivoted.conf_cert_num.name, col1)
 
     return df_result
