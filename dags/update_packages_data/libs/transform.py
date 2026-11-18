@@ -70,9 +70,9 @@ def mixin_certificates_data(df: pandas.DataFrame) -> pandas.DataFrame:
     fmap = QueryIcPackageMap
 
     cert_cols = [
-        SKUActiveCertificatesPivoted.sku_uuid.name,
-        SKUActiveCertificatesPivoted.conf_cert_num.name,
-        SKUActiveCertificatesPivoted.conf_decl_cert_num.name
+        SKUActiveCertificatesPivoted.sku_uuid,
+        SKUActiveCertificatesPivoted.conf_cert_num,
+        SKUActiveCertificatesPivoted.conf_decl_cert_num
     ]
 
     with (DbBroker() as db_broker):
