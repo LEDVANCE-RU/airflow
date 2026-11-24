@@ -23,6 +23,7 @@ from db_model.onec_extract.constants import WarehouseUUID, IcLifecycleStatus, No
     NomenclatureCertificateType
 from db_model.onec_extract.model import Nomenclature, Ic, Packages, FutureArrivalsStock, StockHistory, Partner, \
     NomenclatureCertificate, NomenclatureCertificateOperationScope
+import db_model.national_catalogue.model as m_nc
 from lemana_pro_orders_processing.libs.order_parser import Order
 
 
@@ -662,3 +663,29 @@ class DbBroker(metaclass=AutoRollbackMeta):
     def get_pivoted_sku_active_certificates(self, return_stmt=False):
         stmt = sa.select(SKUActiveCertificatesPivoted)
         return stmt if return_stmt else self.session.execute(stmt).all()
+
+    def get_natcat_products(self,
+                            good_ids: list[int] | None = None,
+                            columns: list[sa.Column] | None = None,
+                            return_stmt=False):
+        stmt = (
+            sa.select(m_nc.Product)
+            .where(
+                True if not good_ids else m_nc.Product.good_id.in_(good_ids)
+            )
+        )
+        if columns:
+            stmt = stmt.with_only_columns(*columns)
+
+        return stmt if return_stmt else self.session.execute(stmt).all()
+
+    def upsert_natcat_products(self, items: list[m_nc.Product]):
+        insert_stmt = sa_pg.insert(m_nc.Product).values(items)
+        index_cols = [m_nc.Product.good_id]
+        upsert_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=index_cols,
+            set_=m_nc.Product.get_update_set_for_upsert(insert_stmt, index_cols + [m_nc.Product.id]),
+        )
+        result = self.session.execute(upsert_stmt)
+        logging.info('Updated/inserted rows: %s', result.rowcount)
+        self.session.commit()

@@ -1,0 +1,3 @@
+DT_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+RATE_LIMIT_WINDOW = 5 * 60
