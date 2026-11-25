@@ -65,31 +65,37 @@ def process_data(result_fp: str) -> pandas.DataFrame | None:
         df.to_excel(result_fp, index=False)
 
 def mixin_certificates_data(df: pandas.DataFrame) -> pandas.DataFrame:
-    from db_model.core.model import SKUActiveCertificatesPivoted
+    from db_model.core.model import SkuLastCertificatesPivoted
 
     fmap = QueryIcPackageMap
 
     cert_cols = [
-        SKUActiveCertificatesPivoted.sku_uuid,
-        SKUActiveCertificatesPivoted.conf_cert_num,
-        SKUActiveCertificatesPivoted.conf_decl_cert_num
+        SkuLastCertificatesPivoted.sku_uuid,
+        SkuLastCertificatesPivoted.conf_cert_num,
+        SkuLastCertificatesPivoted.conf_cert_active_from,
+        SkuLastCertificatesPivoted.conf_cert_active_till,
+        SkuLastCertificatesPivoted.conf_decl_cert_num,
+        SkuLastCertificatesPivoted.conf_decl_cert_active_from,
+        SkuLastCertificatesPivoted.conf_decl_cert_active_till,
     ]
 
     with (DbBroker() as db_broker):
-        stmt = db_broker.get_pivoted_sku_active_certificates(return_stmt=True).with_only_columns(*cert_cols)
+        stmt = db_broker.get_pivoted_sku_last_certificates(return_stmt=True).with_only_columns(*cert_cols)
         df_cert = pandas.read_sql(stmt, db_broker.session.connection())
 
     df_result = df.merge(
         df_cert,
         how='left',
         left_on=fmap.SKU_UUID,
-        right_on=SKUActiveCertificatesPivoted.sku_uuid.name
+        right_on=SkuLastCertificatesPivoted.sku_uuid.name
     )
 
-    col1 = df_result.pop(SKUActiveCertificatesPivoted.conf_cert_num.name)
-    col2 = df_result.pop(SKUActiveCertificatesPivoted.conf_decl_cert_num.name)
     target_idx = df_result.columns.get_loc(fmap.IC_LIFECYCLE_STATUS) + 1
-    df_result.insert(target_idx, SKUActiveCertificatesPivoted.conf_cert_num.name, col1)
-    df_result.insert(target_idx + 1, SKUActiveCertificatesPivoted.conf_decl_cert_num.name, col2)
+    cert_mixin_cols = cert_cols.copy()
+    cert_mixin_cols.remove(SkuLastCertificatesPivoted.sku_uuid)
+    for idx, col in enumerate(cert_mixin_cols):
+        s = df_result.pop(col.name)
+        df_result.insert(target_idx + idx, SkuLastCertificatesPivoted.conf_cert_num.name, s)
+        idx += 1
 
     return df_result

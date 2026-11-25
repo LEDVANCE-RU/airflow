@@ -63,8 +63,8 @@ class RuntimeState(AbstractBaseModel):
     updated_on = sa.Column(sa.TIMESTAMP(timezone=True))
 
 
-class SKUActiveCertificatesPivoted(AbstractBaseModel):
-    __tablename__ = "sku_active_certificates_pivoted"
+class SkuLastCertificatesPivoted(AbstractBaseModel):
+    __tablename__ = "sku_last_certificates_pivoted"
 
     UQ_CONSTR_NAME = f'uq_{__tablename__}'
 

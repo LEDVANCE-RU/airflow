@@ -17,7 +17,7 @@ from sqlalchemy.orm import aliased as sa_aliased
 from constants import TZ_MSK, TZ_UTC
 from db_model.main import SessionLocal
 import db_model.mapping as q_map
-from db_model.core.model import ZeroedStockHistory, LemanaProOrder, RuntimeState, SKUActiveCertificatesPivoted
+from db_model.core.model import ZeroedStockHistory, LemanaProOrder, RuntimeState, SkuLastCertificatesPivoted
 from db_model.marketprovider.model import Category, Product, TempProduct
 from db_model.onec_extract.constants import WarehouseUUID, IcLifecycleStatus, NomenclatureCertificateStatusUUID, \
     NomenclatureCertificateType
@@ -525,8 +525,8 @@ class DbBroker(metaclass=AutoRollbackMeta):
         )
         return stmt if return_stmt else self.session.execute(stmt).all()
 
-    def get_active_sku_certificates(self, cert_types: list[str] | None = None,
-                                    return_stmt: bool = False):
+    def get_last_sku_certificates(self, cert_types: list[str] | None = None, active_only: bool = False,
+                                  return_stmt: bool = False):
         fmap = q_map.QuerySKUCertificateMap
         subq = (
             sa.select(
@@ -557,13 +557,14 @@ class DbBroker(metaclass=AutoRollbackMeta):
                 Nomenclature.uuid == NomenclatureCertificateOperationScope.nomenclature_uuid
             ).filter(
                 True if cert_types is None else NomenclatureCertificate.type.in_(cert_types),
-                NomenclatureCertificate.status_uuid == NomenclatureCertificateStatusUUID.ACTIVE
+                True if not active_only
+                else NomenclatureCertificate.status_uuid == NomenclatureCertificateStatusUUID.ACTIVE
             )
         ).subquery()
         stmt = sa.select(subq).where(subq.c.rn == 1)
         return stmt if return_stmt else self.session.execute(stmt).all()
 
-    def get_active_sku_certificates_pivoted(self, return_stmt: bool = False):
+    def get_last_sku_certificates_pivoted(self, return_stmt: bool = False):
         fmap = q_map.QuerySKUCertificateMap
         fmap_pvt = q_map.QuerySKUCommodityCertificatesPivotedMap
         cert_types = [
@@ -586,7 +587,7 @@ class DbBroker(metaclass=AutoRollbackMeta):
             (NomenclatureCertificateType.CONFORMITY_DECLARATION, fmap.CERT_ACTIVE_FROM): fmap_pvt.CONF_DECL_CERT_ACTIVE_FROM,
             (NomenclatureCertificateType.CONFORMITY_DECLARATION, fmap.CERT_ACTIVE_TILL): fmap_pvt.CONF_DECL_CERT_ACTIVE_TILL
         }
-        subq = self.get_active_sku_certificates(
+        subq = self.get_last_sku_certificates(
             cert_types=cert_types,
             return_stmt=True
         ).subquery()
@@ -610,44 +611,44 @@ class DbBroker(metaclass=AutoRollbackMeta):
         )
         return stmt if return_stmt else self.session.execute(stmt).all()
 
-    def upsert_pivoted_sku_active_certificates(self):
+    def upsert_pivoted_sku_last_certificates(self):
         fmap_pvt = q_map.QuerySKUCommodityCertificatesPivotedMap
         col_map = {
-            SKUActiveCertificatesPivoted.sku_uuid: fmap_pvt.SKU_UUID,
-            SKUActiveCertificatesPivoted.sku_code: fmap_pvt.SKU_CODE,
-            SKUActiveCertificatesPivoted.sku: fmap_pvt.SKU,
-            SKUActiveCertificatesPivoted.conf_cert_name: fmap_pvt.CONF_CERT_NAME,
-            SKUActiveCertificatesPivoted.conf_cert_num: fmap_pvt.CONF_CERT_NUM,
-            SKUActiveCertificatesPivoted.conf_cert_active_from: fmap_pvt.CONF_CERT_ACTIVE_FROM,
-            SKUActiveCertificatesPivoted.conf_cert_active_till: fmap_pvt.CONF_CERT_ACTIVE_TILL,
-            SKUActiveCertificatesPivoted.conf_decl_cert_name: fmap_pvt.CONF_DECL_CERT_NAME,
-            SKUActiveCertificatesPivoted.conf_decl_cert_num: fmap_pvt.CONF_DECL_CERT_NUM,
-            SKUActiveCertificatesPivoted.conf_decl_cert_active_from: fmap_pvt.CONF_DECL_CERT_ACTIVE_FROM,
-            SKUActiveCertificatesPivoted.conf_decl_cert_active_till: fmap_pvt.CONF_DECL_CERT_ACTIVE_TILL
+            SkuLastCertificatesPivoted.sku_uuid: fmap_pvt.SKU_UUID,
+            SkuLastCertificatesPivoted.sku_code: fmap_pvt.SKU_CODE,
+            SkuLastCertificatesPivoted.sku: fmap_pvt.SKU,
+            SkuLastCertificatesPivoted.conf_cert_name: fmap_pvt.CONF_CERT_NAME,
+            SkuLastCertificatesPivoted.conf_cert_num: fmap_pvt.CONF_CERT_NUM,
+            SkuLastCertificatesPivoted.conf_cert_active_from: fmap_pvt.CONF_CERT_ACTIVE_FROM,
+            SkuLastCertificatesPivoted.conf_cert_active_till: fmap_pvt.CONF_CERT_ACTIVE_TILL,
+            SkuLastCertificatesPivoted.conf_decl_cert_name: fmap_pvt.CONF_DECL_CERT_NAME,
+            SkuLastCertificatesPivoted.conf_decl_cert_num: fmap_pvt.CONF_DECL_CERT_NUM,
+            SkuLastCertificatesPivoted.conf_decl_cert_active_from: fmap_pvt.CONF_DECL_CERT_ACTIVE_FROM,
+            SkuLastCertificatesPivoted.conf_decl_cert_active_till: fmap_pvt.CONF_DECL_CERT_ACTIVE_TILL
         }
-        subq = self.get_active_sku_certificates_pivoted(return_stmt=True).subquery()
+        subq = self.get_last_sku_certificates_pivoted(return_stmt=True).subquery()
 
         stmt_delete = (
-            sa.delete(SKUActiveCertificatesPivoted)
+            sa.delete(SkuLastCertificatesPivoted)
             .where(
-                ~SKUActiveCertificatesPivoted.sku_uuid.in_(sa.select(subq.c.sku_uuid))
+                ~SkuLastCertificatesPivoted.sku_uuid.in_(sa.select(subq.c.sku_uuid))
             )
         )
 
         stmt_insert = (
-            sa_pg.insert(SKUActiveCertificatesPivoted)
+            sa_pg.insert(SkuLastCertificatesPivoted)
             .from_select(
                 list(col_map.keys()),
                 sa.select(*[subq.c[v] for v in col_map.values()]),
             )
         )
-        index_elements = [SKUActiveCertificatesPivoted.sku_uuid]
+        index_elements = [SkuLastCertificatesPivoted.sku_uuid]
         stmt_upsert = (
             stmt_insert.on_conflict_do_update(
                 index_elements=index_elements,
-                set_=SKUActiveCertificatesPivoted.get_update_set_for_upsert(
+                set_=SkuLastCertificatesPivoted.get_update_set_for_upsert(
                     stmt_insert,
-                    index_elements + [SKUActiveCertificatesPivoted.id]
+                    index_elements + [SkuLastCertificatesPivoted.id]
                 ),
             )
         )
@@ -660,8 +661,8 @@ class DbBroker(metaclass=AutoRollbackMeta):
 
         self.session.commit()
 
-    def get_pivoted_sku_active_certificates(self, return_stmt=False):
-        stmt = sa.select(SKUActiveCertificatesPivoted)
+    def get_pivoted_sku_last_certificates(self, return_stmt=False):
+        stmt = sa.select(SkuLastCertificatesPivoted)
         return stmt if return_stmt else self.session.execute(stmt).all()
 
     def get_natcat_products(self,

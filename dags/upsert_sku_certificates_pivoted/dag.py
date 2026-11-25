@@ -15,6 +15,6 @@ with DAG(
         from db_model.db_broker import DbBroker
 
         with (DbBroker() as db_broker):
-            db_broker.upsert_pivoted_sku_active_certificates()
+            db_broker.upsert_pivoted_sku_last_certificates()
 
     upsert_task()

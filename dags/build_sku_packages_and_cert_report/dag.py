@@ -10,14 +10,14 @@ from constants import TZ_MSK
 
 
 with DAG(
-    dag_id="update_packages_data",
+    dag_id="build_sku_packages_and_cert_report",
     start_date=datetime(2026, 11, 1, tzinfo=TZ_MSK),
     schedule='0 2 * * *',
     catchup=False,
 ) as dag:
     @task
     def transform_task() -> str:
-        from update_packages_data.libs.transform import process_data
+        from build_sku_packages_and_cert_report.libs.transform import process_data
 
         local_dp = os.path.join(Variable.get('tmp_dir_path'), 'packages')
         local_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_packages.xlsx")
