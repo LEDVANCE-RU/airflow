@@ -95,7 +95,7 @@ def mixin_certificates_data(df: pandas.DataFrame) -> pandas.DataFrame:
     cert_mixin_cols.remove(SkuLastCertificatesPivoted.sku_uuid)
     for idx, col in enumerate(cert_mixin_cols):
         s = df_result.pop(col.name)
-        df_result.insert(target_idx + idx, SkuLastCertificatesPivoted.conf_cert_num.name, s)
+        df_result.insert(target_idx + idx, col.name, s)
         idx += 1
 
     return df_result
