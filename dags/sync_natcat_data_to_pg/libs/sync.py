@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 import pandas
@@ -8,6 +8,7 @@ from api.national_catalogue.client import NationalCatalogueApiClient
 import db_model.national_catalogue.model as m_nc
 from api.national_catalogue.constants import DT_FORMAT
 import api.national_catalogue.mapping as nc_map
+from constants import TZ_MSK
 from db_model.db_broker import DbBroker
 
 
@@ -84,12 +85,12 @@ def _fill_product_data(data: dict, row: pandas.Series):
         m_nc.Product.created_at.name:
             datetime.strptime(
                 data[nc_map.ProductField.CREATED_AT], DT_FORMAT
-            ).replace(tzinfo=timezone.utc),
+            ).replace(tzinfo=TZ_MSK),
         m_nc.Product.updated_at.name:
             datetime.strptime(
                 data[nc_map.ProductField.UPDATED_AT], DT_FORMAT
-            ).replace(tzinfo=timezone.utc),
-        m_nc.Product.synced_at.name: datetime.now(timezone.utc),
+            ).replace(tzinfo=TZ_MSK),
+        m_nc.Product.synced_at.name: datetime.now(TZ_MSK),
         m_nc.Product.gtin.name: data[nc_map.ProductField.IDENTITY][0][nc_map.ProductIdentityField.VALUE],
         m_nc.Product.tnved.name: _get_attr_value(data, nc_map.ProductAttrName.TNVED),
         m_nc.Product.okpd2.name: _get_attr_value(data, nc_map.ProductAttrName.OKPD2),
