@@ -1,5 +1,4 @@
 import logging
-import time
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -7,6 +6,7 @@ import requests
 from tenacity import retry, retry_if_exception, wait_exponential, before_sleep_log, stop_after_delay
 
 from api.national_catalogue.constants import RATE_LIMIT_WINDOW
+from api.national_catalogue.mapping import ApiResponseField, ProductListField
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +27,8 @@ class _RequestParams:
     method: Callable
     endpoint: str
     query: dict = field(default_factory=dict)
-    offset: int = 0
-    limit: int = 1
+    offset: int | None = None
+    limit: int | None = None
     paginate: bool = False
 
     @property
@@ -87,15 +87,13 @@ class NationalCatalogueApiClient:
                           owner_inn: int | None = None,
                           brand_id: int | None = None,
                           cat_id: int | None = None):
-        request_delay = (5 * 60) * (1 / 500)
         offset = 0
         limit = 100
         while True:
             resp = self.list_products(owner_inn=owner_inn, brand_id=brand_id, cat_id=cat_id, offset=offset, limit=limit)
             yield resp
-            if len(resp['result']['goods']) < limit:
+            if len(resp[ApiResponseField.RESULT][ProductListField.PRODUCTS]) < limit:
                 break
-            time.sleep(request_delay)
             offset += limit
 
     def get_product_details(self, good_id: int):

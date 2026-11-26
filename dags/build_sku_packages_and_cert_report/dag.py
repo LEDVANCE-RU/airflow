@@ -20,6 +20,7 @@ with DAG(
         from build_sku_packages_and_cert_report.libs.transform import process_data
 
         local_dp = os.path.join(Variable.get('tmp_dir_path'), 'packages')
+        os.makedirs(local_dp, exist_ok=True)
         local_fp = os.path.join(local_dp, f"{uuid.uuid4().hex}_packages.xlsx")
         process_data(local_fp)
         return local_fp
